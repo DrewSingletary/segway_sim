@@ -2,6 +2,10 @@
 
 This is a ROS-based C++ simulation environment for a two-wheeled inverted pendulum (Segway) robot. It currently has two branches, a Model Predictive Control (MPC) branch that uses a Mixed Observable Markov Decision Process (MOMDP) planner for high-level planning, and uses the MPC for trajectory generation and control. The other branch is a Control Barrier Function (CBF) branch that guarantees that the system stays in a "safe" subset of the state space, regardless of the inputs given to the system from the user.
 
+<p align="center">
+<img src="https://i.imgur.com/Y8BJ5XU.png" width="250" />
+</p>
+
 ### Prerequisites
 
 Eigen is required. If Eigen is not installed, or you want to run the version of Eigen that runs on the Segway, use the Eigen_embedded folder and replace all instances of Eigen_embedded with Eigen.
