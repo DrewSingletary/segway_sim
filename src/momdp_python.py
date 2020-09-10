@@ -283,13 +283,13 @@ class StatateMeasurements():
         if expFlag == 1:
             rospy.Subscriber("state", state, self.state_callback_exp)
         else:
-            rospy.Subscriber("state", state, self.state_callback_sim)
+            rospy.Subscriber("state_true", state, self.state_callback_sim)
 
     def state_callback_exp(self, msg):
         self.state = [msg.state[0]+self.x_start, msg.state[1]+self.y_start, msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
 
     def state_callback_sim(self, msg):
-        self.state = [msg.x + self.x_start, msg.y + self.y_start, msg.theta, msg.v, msg.thetaDot, msg.psi, msg.psiDot]
+        self.state = [msg.x, msg.y, msg.theta, msg.v, msg.thetaDot, msg.psi, msg.psiDot]
 
 if __name__ == "__main__":
 
