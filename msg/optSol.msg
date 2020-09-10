@@ -1,0 +1,10 @@
+uint8 status
+Header header
+float64[367] optimalSolution
+float64 solverFlag
+float64 solverTime
+float64 x
+float64 y
+float64[7] xCurr
+float64[7] x_IC
+float64 delay_ms

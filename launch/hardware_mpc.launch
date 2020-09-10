@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<launch>
+	<group ns="cyberpod">
+
+		<node pkg="joy" type="joy_node" name="joy_node">
+	      <param name="dev" value="/dev/input/js0" />
+	      <param name="autorepeat_rate" value="50.0" />
+	    </node>
+
+		<node name="mpc" pkg="segway_sim" type="mpc_node" output="screen">
+			<param name="hardware" value="true"/>
+			<param name="offset_angle" value="0.138324423615"/>
+			<param name="mpc_input_delay" value="-1.0"/>
+			<param name="x_start" value="0.5"/>
+
+			<param name="y_start" value="4.5"/>
+			<param name="theta_start" value="3.14"/>
+			<!-- IMPORTANT: the effect of the delay in the prediction horizon is a bit approximated when delay =! dt_mpc (if needed can be handles more carefully) -->
+			<param name="e_x"        type="double" value="0.0"/>
+			<param name="e_y"        type="double" value="0.0"/>
+			<param name="e_theta"    type="double" value="0.0"/>
+			<param name="e_v"        type="double" value="0.0"/>
+			<param name="e_thetaDot" type="double" value="0.0"/>
+			<param name="e_psi"      type="double" value="0.0"/>
+			<param name="e_psiDot"   type="double" value="0.0"/>
+			<param name="enlarge"    type="double" value="0.1"/>		
+
+			<param name="_btn_init" value="3" type="int" />
+	        <param name="_btn_run" value="2" type="int" />
+	        <param name="_btn_backup" value="1" type="int" />
+		</node>
+	
+	</group>
+</launch>

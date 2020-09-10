@@ -1,0 +1,11 @@
+uint8 status
+Header header
+float64 time
+float64 x
+float64 y
+float64 theta
+float64 v
+float64 thetaDot
+float64 psi
+float64 psiDot
+float64[7] stateVec

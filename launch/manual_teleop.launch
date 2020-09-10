@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+
+	<group ns="segway_sim">
+
+		<node name="manual_teleop" pkg="segway_sim" type="manual_teleop_node" output="screen">
+			<param name="input_dev" value="/dev/input/event1" />
+			<param name="hz" value="100" />
+			<param name="vx" value="1.0" />
+			<param name="vyaw" value="1.6" />
+			<param name="boost" value="2.0" />
+			<param name="smoothing_dt" value="0.2" />
+		</node>
+
+	</group>
+</launch>
