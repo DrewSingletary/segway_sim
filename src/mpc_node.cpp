@@ -425,7 +425,7 @@ int main (int argc, char *argv[])
 				mpcValFun->updateGoalSetAndState(goalSetAndStateVector);			
 			}
 
-			if ( horizonCounter == 0){
+			if ( horizonCounter == 1){
 				mpcValFun->updateHorizon();
 				horizonCounter = 0;
 			} else {
