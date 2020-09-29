@@ -1,0 +1,51 @@
+name: pyMOMDP
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - ca-certificates=2020.6.20=hecda079_0
+  - certifi=2020.6.20=py38h32f6830_0
+  - cycler=0.10.0=py_2
+  - freetype=2.10.2=h8da9a1a_0
+  - jpeg=9d=h0b31af3_0
+  - kiwisolver=1.2.0=py38ha0d09dd_0
+  - lcms2=2.11=h174193d_0
+  - libblas=3.8.0=16_mkl
+  - libcblas=3.8.0=16_mkl
+  - libcxx=10.0.1=h5f48129_0
+  - libffi=3.2.1=hb1e8313_1007
+  - libgfortran=4.0.0=3
+  - libgfortran4=7.5.0=h1565451_3
+  - liblapack=3.8.0=16_mkl
+  - libopenblas=0.3.10=openmp_h63d9170_4
+  - libpng=1.6.37=hb0a8c7a_2
+  - libtiff=4.1.0=h2ae36a8_6
+  - libwebp-base=1.1.0=h0b31af3_3
+  - llvm-openmp=10.0.1=h28b9765_0
+  - lz4-c=1.9.2=hb1e8313_3
+  - matplotlib=3.3.1=1
+  - matplotlib-base=3.3.1=py38haed9462_1
+  - mkl=2020.2=260
+  - ncurses=6.2=hb1e8313_1
+  - numpy=1.19.1=py38h8ccc501_2
+  - olefile=0.46=py_0
+  - openssl=1.1.1g=haf1e3a3_1
+  - pillow=7.2.0=py38h83dc5e5_1
+  - pip=20.2.3=py_0
+  - pyparsing=2.4.7=pyh9f0ad1d_0
+  - python=3.8.5=hfc71d35_7_cpython
+  - python-dateutil=2.8.1=py_0
+  - python_abi=3.8=1_cp38
+  - readline=8.0=h0678c8f_2
+  - scipy=1.5.2=py38h1402333_0
+  - setuptools=49.6.0=py38h32f6830_0
+  - six=1.15.0=pyh9f0ad1d_0
+  - sqlite=3.33.0=h960bd1c_0
+  - tk=8.6.10=hb0a8c7a_0
+  - tornado=6.0.4=py38h64e0658_1
+  - wheel=0.35.1=pyh9f0ad1d_0
+  - xz=5.2.5=haf1e3a3_1
+  - zlib=1.2.11=h7795811_1009
+  - zstd=1.4.5=h289c70a_2
+prefix: /opt/anaconda3/envs/pyMOMDP

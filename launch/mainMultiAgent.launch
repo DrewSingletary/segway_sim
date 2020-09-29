@@ -1,0 +1,138 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="teleop" default="joy" />
+   <arg name="viz" default="on"/>
+   <arg name="filter" default="off"/>
+
+   <include file="$(find uav_sim_ros)/launch/manual_teleop.launch"/>
+	<include file="$(find segway_sim)/launch/rvizMultiAgent.launch" if="$(eval viz == 'on')"/>
+   <!-- <include file="$(find uav_sim_ros)/launch/rviz.launch" if="$(eval viz == 'on')"/> -->
+
+		<group ns="uav_sim_ros">
+
+		<node name="integrator_drone" pkg="uav_sim_ros" type="integrator_node" output="screen">
+			<param name="dt" value="0.001" />
+			<rosparam param="IC">[0.5, 6.5, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+		</node>
+
+		<node name="safety_filter" pkg="uav_sim_ros" type="safety_filter_node" output="screen">
+			<param name="pass_through" value="0" if="$(eval filter == 'on')"/>
+			<param name="pass_through" value="1" if="$(eval filter == 'off')"/>
+			<param name="integration_dt" value="0.01"/>
+			<param name="backup_Tmax" value="1"/>
+			<param name="safety_buffer" value="0.2"/>
+			<param name="safety_buffer_soft" value="0.2"/>
+			<param name="terminal_vel_max" value="0.05"/>
+			<param name="tau_backup" value="0.1"/>
+			<param name="smoothing_tau_obstacle" value="0.2"/>
+			<param name="smoothing_tau_vDes" value="0.1"/>
+
+			<param name="hoverThrust" value="0.5127" />
+			<param name="KiVz" value="5.0" />
+			<param name="KpVz" value="1.0" />
+			<param name="KpVxy" value="0.3" />
+			<param name="KpAttitude" value="0.5" />
+			<param name="KdAttitude" value="0.05" />
+			<param name="KpOmegaz" value="2.0" />
+			<param name="maxInclination" value="30.0" />
+		</node>
+
+		<node name="controller_drone" pkg="uav_sim_ros" type="controller_node" output="screen">
+			<param name="hoverThrust" value="0.52" />
+			<param name="KiVz" value="5.0" />
+			<param name="KpVz" value="1.0" />
+			<param name="KpVxy" value="0.1" />
+			<param name="KpAttitude" value="0.5" />
+			<param name="KdAttitude" value="0.05" />
+			<param name="KiOmegaz" value="1.0" />
+			<param name="KpOmegaz" value="2.0" />
+			<param name="maxInclination" value="30.0" />
+		</node>
+
+
+
+    <node name="sensor_drone" pkg="uav_sim_ros" type="sensor_node" output="screen">
+      <param name="offset_angle" value="0.138324423615"/>
+    </node>
+
+    <node name="ekf_drone" pkg="uav_sim_ros" type="ekf_node" output="screen">
+    </node>
+	</group>
+
+
+	<group ns="segway_sim">
+
+		<node name="integrator" pkg="segway_sim" type="integrator_node" output="screen">
+			<param name="dt" value="0.001" />
+			<param name="umax" value="20.0" />
+			<param name="input_delay_ms" value="10.0"/>
+			<!-- IMPORTANT: The initial condition is hard coded in the MPC file -->
+			<rosparam param="IC">[0.5, 6.5, 3.14, 0.0, 0.0, 0.0, 0.0]</rosparam>
+		</node>
+
+		<node name="low_level" pkg="segway_sim" type="low_level_node" output="screen">
+			<param name="offset_angle" value="0.138324423615"/>
+			<param name="low_level_input_delay" value="0.0"/>
+		
+<!-- 			<param name="xmax"        type="double" value="0.05"/>
+			<param name="ymax"        type="double" value="0.05"/>
+			<param name="thetamax"    type="double" value="0.075"/>
+			<param name="vmax"        type="double" value="0.3"/>
+			<param name="thetaDotmax" type="double" value="0.4"/>
+			<param name="psimax"      type="double" value="0.1"/>
+			<param name="psiDotmax"   type="double" value="0.4"/> -->
+
+			<param name="xmax"        type="double" value="0.04"/>
+			<param name="ymax"        type="double" value="0.04"/>
+			<param name="thetamax"    type="double" value="0.1"/>
+			<param name="vmax"        type="double" value="0.3"/>
+			<param name="thetaDotmax" type="double" value="0.3"/>
+			<param name="psimax"      type="double" value="0.1"/>
+			<param name="psiDotmax"   type="double" value="0.3"/>
+
+			<param name="low_level_active" value="1.0"/>
+		</node>
+
+		<node name="mpc" pkg="segway_sim" type="mpc_node" output="screen">
+			<param name="offset_angle" value="0.138324423615"/>
+			<!-- <param name="mpc_input_delay" value="-1.0"/> -->
+			<param name="mpc_input_delay" value="-1.0"/>
+			<param name="x_start" value="0.5"/>
+
+			<!-- <param name="y_start" value="1.5"/> -->
+			<!-- <param name="y_start" value="1.5"/> -->
+			<param name="y_start" value="6.5"/>
+			<!-- IMPORTANT: the effect of the delay in the prediction horizon is a bit approximated when delay =! dt_mpc (if needed can be handles more carefully) -->
+			<param name="e_x"        type="double" value="0.04"/>
+			<param name="e_y"        type="double" value="0.04"/>
+			<param name="e_theta"    type="double" value="0.1"/>
+			<param name="e_v"        type="double" value="0.3"/>
+			<param name="e_thetaDot" type="double" value="0.3"/>
+			<param name="e_psi"      type="double" value="0.1"/>
+			<param name="e_psiDot"   type="double" value="0.3"/>
+
+			<param name="enlarge"    type="double" value="0.3"/>		
+		</node>
+
+		<node name="drone_mpc_python" pkg="segway_sim" type="drone_mpc_python.py" output="screen">
+		</node>
+
+		<node name="momdpMultiAgent_node" pkg="segway_sim" type="momdpMultiAgent_node.py" output="screen">
+			<param name="expFlag" value="0"/>
+		</node>
+
+		<node name="sensor" pkg="segway_sim" type="sensor_node" output="screen">
+			<param name="offset_angle" value="0.138324423615"/>
+		</node>
+
+		<node name="ekf" pkg="segway_sim" type="ekf_node" output="screen">
+			<param name="offset_angle" value="0.138324423615"/>
+		</node>
+
+	<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/ugo/rosbag/"/> 
+
+	</group>
+</launch>
+
+
+<!-- rosservice call /segway_sim/integrator/ui "cmd: 1" -->

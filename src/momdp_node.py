@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import sys
 import datetime
 import rospy
 import numpy as np
@@ -10,41 +9,35 @@ import pdb
 import sys
 import time
 import matplotlib.pyplot as plt
+import pickle
+import sys
+
+sys.path.append(sys.path[0]+'/pyFun')
+print("sys.path: ", sys.path)
 
 from segway_sim.msg import goalSetAndState
 import scipy.io as sio
 import numpy as np
-from MOMDP import MOMDP
+from MOMDP import MOMDP_TOQ
 
 import roslib; roslib.load_manifest('visualization_marker_tutorials')
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 import rospy
 import math
-
-
 homedir = os.path.expanduser("~")    
 
 def main():
     # Initializa ROS node
-    rospy.init_node("momdp_python")
-    
-    count  = 0
-    # publisher = rospy.Publisher('/segway_sim/visualization_marker', Marker)
-    publisher = rospy.Publisher('/segway_sim/visualization_marker_array', MarkerArray)
-    markerArray = MarkerArray()
+    rospy.init_node("momdp")
 
-    count = 0
-    MARKERS_MAX = 100
-
-
-    # Initialize parameters
+    # Initialize node parameters
     loop_rate      = 100.0
     dt             = 1.0/loop_rate
     rate           = rospy.Rate(loop_rate)
     x_start        = rospy.get_param("mpc/x_start")
     y_start        = rospy.get_param("mpc/y_start")
-    expFlag        = rospy.get_param("momdp_python/expFlag")
+    expFlag        = rospy.get_param("momdp_node/expFlag")
 
     if expFlag == 1:
         from ambercortex_ros.msg import state
@@ -53,136 +46,100 @@ def main():
 
     # Initialize subscriber and publisher
     statateMeasurements = StatateMeasurements(x_start, y_start, expFlag, state) # this object read the true state (not the estimated)
-
-    testToTry      = rospy.get_param("momdp_python/testToTry")
-    
+    publisher = rospy.Publisher('/segway_sim/visualization_marker_array', MarkerArray)
+    markerArray = MarkerArray()
     goalSetAndState_pub = rospy.Publisher('goalSetAndState', goalSetAndState, queue_size=1)
     goalSetAndStateMsg  = goalSetAndState()   
 
-    # Import matrices for MOMDP
-    M, Px, V, J, gridVar = readData(testToTry)
+    # Import MOMDP
+    fileName  = sys.path[0]+'/pyFun/TOQ_1/MOMDP_obj_5x5_3'
+    pickle_in = open(fileName,"rb")
+    momdp     = pickle.load(pickle_in)
 
-
-    # Init Environment and
-    if testToTry == -1:
-        obstOrder  = [1, 0, 2]
-        loc        = '101'
-        initBelief = [0.75, 0.6, 0.9]
-        # loc        = '110'
-        # initBelief = [0.25, 0.45, 0.1]
-    elif testToTry == -2:
-        obstOrder  = [0, 1]
-        loc        = '00'
-        initBelief = [0.6, 0.9]
-    elif testToTry == -3:
-        obstOrder  = [1,0]
-        loc        = '00'
-        initBelief = [0.6, 0.9]
-    else:
-        obstOrder  = [0]
-        loc        = '1'
-        initBelief = [0.9]
+    # Init Environment
+    loc        = (1, 0, 1)
+    initBelief = [0.9, 0.6, 0.75]
 
     xt         = [0]
     t          = 0
     verbose    = 0
     at = []
 
-    # Initialize
-    momdp = MOMDP(Px, M, V, J, gridVar, verbose)
-    bt = momdp.initBeliefAndZ(loc, initBelief)
-
-    [action, coordXY, coordCo, boxConstraints, boxNext] = momdp.updateMOMDP(t, xt[-1], bt[-1]);
-
+    # Initialize MOMDP
+    momdp.initZ(loc)
+    bt = [momdp.initBelief(initBelief)]
+    # Update MOMDP
+    [action, coordXY, boxConstraints, boxNext] = momdp.updateMOMDP(t, xt[-1], bt[-1]);
     at.append(action)
     xt.append(momdp.propagate(xt[-1], momdp.zt, at[-1]))
     t =+ 1
 
-    # Initialize marker array
-    colorMarker = [1.0, 1.0, 0.0]
-    [markerArray.markers.append(initMarker(momdp, 0, i, obstOrder, colorMarker)) for i in range(0, momdp.numUnKnownObst)]
-    [markerArray.markers.append(initMarker(momdp, 1, i, obstOrder, colorMarker)) for i in range(0, momdp.numKnownObst)]
-    colorMarker = [0.0, 1.0, 0.0]
-    markerArray.markers.append(initMarker(momdp, 2, 0, obstOrder, colorMarker))
-    idx = 0
-    for m in markerArray.markers:
-        m.id = idx
-        idx += 1
-
-
-    obstBelief = []
-    [obstBelief.append( momdp.computeObstacleBelief(bt[-1], i) ) for i in range(0, momdp.numUnKnownObst)]
-
-    counter = 0
-    for obsPr in obstBelief:
-        markerArray.markers[counter].color.a = 1 - obsPr
-        counter += 1
-
-    # print("Obst 0: ", obstBelief[0])
-    # print("Obst 1: ", obstBelief[1])
-    # print("Obst 2: ", obstBelief[2])
+    # Initialize marker array for obstacles
+    markerArray = initMarkerArray(markerArray, momdp)
+    # Update \alpha for obstacles: set \alpha = 1-prob beeing free
+    markerArray = updateObstacles(markerArray, momdp, bt)
 
     # Initialize parameters for while loop
     initFlag = 0
+    goalSetAndStateMsg = pubHighLevel(goalSetAndStateMsg, coordXY, boxConstraints, boxNext, t)
     while (not rospy.is_shutdown()):
         if statateMeasurements.state != []:
-            if initFlag == 0:
+            if initFlag == 0: # Publish env position to initialize rviz
                 goalSetAndState_pub.publish(goalSetAndStateMsg) 
                 publisher.publish(markerArray)
-
                 initFlag = 1
                 print("======== Pub")
 
-
-            goalSetAndStateMsg = pubHighLevel(goalSetAndStateMsg, coordXY, coordCo, boxConstraints, boxNext, t)
-            goalSetAndState_pub.publish(goalSetAndStateMsg) 
             # read measurement
             xCurr = statateMeasurements.state
-
+            # Check if goal reached or reached the goal cell
             if (xt[-1] != momdp.goal ) and (xCurr[0] >= boxNext[0]) and (xCurr[0] <= boxNext[1]) and (xCurr[1] >= boxNext[2]) and (xCurr[1] <= boxNext[3]):
-                
-                [action, coordXY, coordCo, boxConstraints, boxNext] = momdp.updateMOMDP(t, xt[-1], bt[-1]);
+                [action, coordXY, boxConstraints, boxNext] = momdp.updateMOMDP(t, xt[-1], bt[-1]);
                 at.append(action)
                 xt.append(momdp.propagate(xt[-1], momdp.zt, at[-1]))
-
-
-                goalSetAndStateMsg = pubHighLevel(goalSetAndStateMsg, coordXY, coordCo, boxConstraints, boxNext, t)
-                goalSetAndState_pub.publish(goalSetAndStateMsg) 
                 t += 1
+                goalSetAndStateMsg = pubHighLevel(goalSetAndStateMsg, coordXY, boxConstraints, boxNext, t)
+                goalSetAndState_pub.publish(goalSetAndStateMsg) 
 
-                print("======== Pub")
-
-                # Renumber the marker IDs
-                obstBelief = []
-                [obstBelief.append( momdp.computeObstacleBelief(bt[-1], i) ) for i in range(0, momdp.numUnKnownObst)]
-                # print("Obst 0: ", obstBelief[0])
-                # print("Obst 1: ", obstBelief[1])
-                # print("Obst 2: ", obstBelief[2])
-
-                counter = 0
-                for obsPr in obstBelief:
-                    markerArray.markers[counter].color.a = 1-obsPr
-                    counter += 1
+                # Update \alpha for obstacles: set \alpha = 1-prob beeing free
+                markerArray = updateObstacles(markerArray, momdp, bt)
 
                 # Publish the MarkerArray
                 publisher.publish(markerArray)
 
-                oMeas = momdp.zt # we measure always zt
+                # Update belief
+                oMeas = momdp.getObservation(xt[-1], 3)
                 bt.append( momdp.updateBelief(xt[-2], xt[-1], at[-1], oMeas, bt[-1]) )
-
-                # publisher.publish(marker)
-
 
             rate.sleep()
             
-
 # ===============================================================================================================================
 # ==================================================== END OF MAIN ==============================================================
 # ===============================================================================================================================
-# def updateMarkerBelief(momdp, i, bt):
+def initMarkerArray(markerArray, momdp):
+    colorMarker = [1.0, 1.0, 0.0]
+    [markerArray.markers.append(initMarker(momdp, 0, i, colorMarker)) for i in range(0, momdp.numUnKnownObst)]
+    [markerArray.markers.append(initMarker(momdp, 1, i, colorMarker)) for i in range(0, momdp.numKnownObst)]
+    # Initialize marker array for goals
+    colorMarker = [0.0, 1.0, 0.0]
+    markerArray.markers.append(initMarker(momdp, 2, 0, colorMarker))
+    # Set idx for marker array
+    idx = 0
+    for m in markerArray.markers:
+        m.id = idx
+        idx += 1
+    return markerArray
 
+def updateObstacles(markerArray, momdp, bt):
+    obstBelief = []
+    [obstBelief.append( momdp.computeBelief(bt[-1], i) ) for i in range(0, momdp.numUnKnownObst)]
+    counter = 0
+    for obsPr in obstBelief:
+        markerArray.markers[counter].color.a = 1-obsPr
+        counter += 1
+    return markerArray
 
-def initMarker(momdp, knowObst, i, obstOrder, colorMarker):
+def initMarker(momdp, knowObst, i, colorMarker):
     ## Visualization
     if knowObst<2:
         cubeLength = 0.2;
@@ -206,9 +163,9 @@ def initMarker(momdp, knowObst, i, obstOrder, colorMarker):
     marker.pose.orientation.w = 1.0
 
     if knowObst == 0:
-        obstCoordinate = np.where( (momdp.gridVar < 1) & (momdp.gridVar > 0) )
-        idx = obstOrder[i]
-        print("obstCoordinate: ", obstCoordinate)
+        obstCoordinate = (momdp.row_obs, momdp.col_obs)
+        idx = i
+        print("=========================================obstCoordinate: ", obstCoordinate)
     elif knowObst == 1:
         obstCoordinate = np.where( (momdp.gridVar < 0) )
         idx = i
@@ -221,41 +178,7 @@ def initMarker(momdp, knowObst, i, obstOrder, colorMarker):
     marker.pose.position.z = 0
     return marker
 
-def readData(testToTry):
-    folderToOpen = 'test_5x5'
-    if testToTry == 1:
-        folderToOpen = '2x2_test_1'
-    elif testToTry == 2:
-        folderToOpen = '2x3_test_2'
-    elif testToTry == 3:
-        folderToOpen = '2x3_test_3'
-    elif testToTry == -2:
-        folderToOpen = '7x7'
-    elif testToTry == -3:
-        folderToOpen = '10x10_test'
-
-    print("Folder to open: ", folderToOpen)
-
-    # Propagation belief matrix M[action, xCurrent, xNext, Observation]
-    i = sio.loadmat(sys.path[0] + '/../matFiles/'+folderToOpen+'/M.mat')
-    M = i['M'] 
-
-    # Action matrix xNext = Px[action, unobservableState] * xCurr
-    i  = sio.loadmat(sys.path[0] + '/../matFiles/'+folderToOpen+'/Px.mat')
-    Px = i['Px'] 
-
-    # Action matrix xNext = Px[action, unobservableState] * xCurr
-    i  = sio.loadmat(sys.path[0] + '/../matFiles/'+folderToOpen+'/V.mat')
-    V  = i['V_app'] 
-    i  = sio.loadmat(sys.path[0] + '/../matFiles/'+folderToOpen+'/J.mat')
-    J  = i['J_app'] 
-
-    i        = sio.loadmat(sys.path[0] + '/../matFiles/'+folderToOpen+'/gridVar.mat')
-    gridVar  = i['gridVar'] 
-
-    return M, Px, V, J, gridVar
-
-def pubHighLevel(goalSetAndStateMsg, coordXY, coordCo, boxConstraints, boxNext, t):
+def pubHighLevel(goalSetAndStateMsg, coordXY, boxConstraints, boxNext, t):
 
     goalSetAndStateMsg.x = (coordXY[1][0] + coordXY[2][0])/2
     goalSetAndStateMsg.y = (coordXY[1][1] + coordXY[2][1])/2

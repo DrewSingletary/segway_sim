@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-	<node name="rviz_safety" pkg="rviz" type="rviz" args="-d $(find segway_sim)/rviz/config_safety_filter.rviz" required="true" />
+	<node name="rviz_safety" pkg="rviz" type="rviz" args="-d $(find segway_sim)/rviz/newPointOfView.rviz" required="true" />
 	
 	<arg name="cyberpod_model" default="$(find segway_sim)/URDF/cyberpod.urdf"/>
 	<param name="cyberpod_description" command="$(find xacro)/xacro --inorder $(arg cyberpod_model)" />

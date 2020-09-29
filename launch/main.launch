@@ -16,14 +16,8 @@
 		</node>
 
 
-		<node name="momdp_python" pkg="segway_sim" type="momdp_python.py" output="screen">
+		<node name="momdp_node" pkg="segway_sim" type="momdp_node.py" output="screen">
 			<param name="expFlag" value="0"/>
-			<!-- 5x5 -->
-			<param name="testToTry" value="-1"/>
-			<!-- 7x7 -->
-			<!-- <param name="testToTry" value="-2"/> -->
-			<!-- 10x10 -->
-			<!-- <param name="testToTry" value="-3"/> -->
 		</node>
 
 

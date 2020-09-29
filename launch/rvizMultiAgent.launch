@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+
+	<node name="rviz_safety" pkg="rviz" type="rviz" args="-d $(find cyberpod_sim_ros)/rviz/multiAgents.rviz" required="true" />
+
+	<arg name="cyberpod_model" default="$(find cyberpod_sim_ros)/URDF/cyberpod.urdf"/>
+	<param name="cyberpod_description" command="$(find xacro)/xacro --inorder $(arg cyberpod_model)" />
+
+	<node pkg="robot_state_publisher" type="robot_state_publisher" name="cyberpod_rviz_pub" >
+		<remap from="robot_description" to="cyberpod_description" />
+	</node>
+
+	<arg name="uav_model" default="$(find uav_sim_ros)/rviz/URDF/amberuav.urdf"/>
+	
+
+	<group ns="uav_sim_ros">
+		<param name="uav_description" command="$(find xacro)/xacro --inorder $(arg uav_model)" />
+		<node pkg="robot_state_publisher" type="robot_state_publisher" name="uav_st_pub" >
+			<remap from="robot_description" to="uav_sim_ros/uav_description" />
+			<param name="publish_frequency" value="1000" />
+			<param name="tf_prefix" value="uav_sim_ros" />
+		</node>
+	</group>
+
+
+
+</launch>
+
