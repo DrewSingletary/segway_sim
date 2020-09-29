@@ -116,7 +116,7 @@ def loadParameters(gridWorld, numObst, unGoal):
 			initBelief = [0.9, 0.3, 0.4,0.5]
 	else:
 		if numObst == 2:
-			loc        = (1,0,0,1)
+			loc        = (0,0,0,1)
 			initBelief = [0.9, 0.3, 0.3,0.4]
 		elif numObst == 3:
 			loc        = (1,1,1,0,1)
@@ -127,7 +127,7 @@ def loadParameters(gridWorld, numObst, unGoal):
 
 	if gridWorld == '7x7ug_d':
 		loc        = (0,0,0,1)
-		initBelief = [0.3, 0.95, 0.90,0.05]
+		initBelief = [0.8, 0.95, 0.90,0.05]
 
 	return totTimeSteps, loc, initBelief
 

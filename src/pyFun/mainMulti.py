@@ -8,7 +8,7 @@ from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TOQ_d
 
 
 def main():
-	load          = 1 # 0 = compute policy and save policy object, 1 = load policy object, -1 = compute policy but DO NOT save it
+	load          = 0 # 0 = compute policy and save policy object, 1 = load policy object, -1 = compute policy but DO NOT save it
 	digitsResults = 6 # number of digits to print, just for visual output 
 	printLevel    = 4 # 0 = only value function update and results, 1 = minimal, 2 = verbose
 	
@@ -34,7 +34,7 @@ def getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = Fal
 	totTimeSteps, _, _ = loadParameters(gridWorld, numObst, unGoal)
 
 
-	fileName = sys.path[0]+'/multiAgent/'+policy+'_'+gridWorld+'_'+str(numObst)
+	fileName = sys.path[0]+'/multiAgent/'+policy+'_'+gridWorld+'_'+str(numObst)+'.pkl'
 
 	if load <= 0: # If load <= 0 compute the policy and store it if load == 0
 		gridVar = loadGrid(gridWorld+'_'+str(numObst))

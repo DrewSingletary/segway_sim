@@ -4,7 +4,7 @@ import scipy.io as sio
 import numpy as np
 import pickle
 from utils import *
-from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q, MOMDP_TOQ_notVectorized
+from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 
 
 def main():
@@ -75,9 +75,9 @@ def getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = Fal
 	totTimeSteps, _, _ = loadParameters(gridWorld, numObst, unGoal)
 
 	if unGoal == False:
-		fileName = sys.path[0]+'/'+policy+'_'+str(discOpt)+'/'+'MOMDP_obj_'+gridWorld+'_'+str(numObst)
+		fileName = sys.path[0]+'/'+policy+'_'+str(discOpt)+'/'+'MOMDP_obj_'+gridWorld+'_'+str(numObst)+'.pkl'
 	else:
-		fileName = sys.path[0]+'/'+policy+'ug_'+str(discOpt)+'/'+'MOMDP_obj_'+gridWorld+'_'+str(numObst)
+		fileName = sys.path[0]+'/'+policy+'ug_'+str(discOpt)+'/'+'MOMDP_obj_'+gridWorld+'_'+str(numObst)+'.pkl'
 
 	
 	if load <= 0: # If load <= 0 compute the policy and store it if load == 0

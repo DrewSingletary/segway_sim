@@ -57,10 +57,10 @@ def main():
     goalDroneSetAndStateMsg  = goalSetAndState()   
 
     # Import MOMDPSegway
-    pickle_in = open(sys.path[0]+'/pyFun/multiAgent/segway_7x7ug_2',"rb")
+    pickle_in = open(sys.path[0]+'/pyFun/multiAgent/segway_7x7ug_2.pkl',"rb")
     momdpSegway     = pickle.load(pickle_in)
     momdpSegway.printLevel = 0
-    pickle_in  = open(sys.path[0]+'/pyFun/multiAgent/drone_7x7ug_d_2',"rb")
+    pickle_in  = open(sys.path[0]+'/pyFun/multiAgent/drone_7x7ug_d_2.pkl',"rb")
     momdpDrone = pickle.load(pickle_in)
     momdpDrone.printLevel = 0
 

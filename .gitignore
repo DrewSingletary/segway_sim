@@ -1,2 +1,4 @@
-*.pyv
+**.pyc
+*.pyc
 *.obj
+*.pkl

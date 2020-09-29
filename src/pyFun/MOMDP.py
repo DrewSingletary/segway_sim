@@ -2,8 +2,10 @@ import numpy as np
 import pdb
 import itertools
 import time
-from multiprocessing import Pool
+import multiprocessing
 import random
+from multiprocessing.pool import ThreadPool
+
 class MOMDP(object):
 	"""docstring for MOMDP"""
 	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal = False, valFunFlag = True):
@@ -138,16 +140,16 @@ class MOMDP(object):
 		for i in range(1, self.timeSteps): # this for loop cannot be parallelized 
 			backUpTime = 0
 			totTime_start = time.time()
-			t = self.timeSteps - i - 1
+			self.t = self.timeSteps - i - 1
 			for s in range(0, self.numS): # this for loop can be parallelized
 				t_start = time.time()
-				self.backupLoopBeliefPoint(t,s)
+				self.backupLoopBeliefPoint(s)
 				backUpTime += time.time() - t_start
-			self.totTime += time.time() - totTime_start
-
+			self.totTime += time.time() - totTime_start			
+		
 			self.avgBackupTime += backUpTime/(self.numS*self.numBeliefPoints)
 			self.avgLoopBackupTime += backUpTime/(self.numS)
-			print("Updated step: ", t, ". Backup time: ", backUpTime/(self.numS*self.numBeliefPoints), " Update at state s time: ", backUpTime/self.numS )
+			print("Updated step: ", self.t, ". Backup time: ", backUpTime/(self.numS*self.numBeliefPoints), " Update at state s time: ", backUpTime/self.numS )
 
 		print("Total time: ", self.totTime)
 		self.avgBackupTime = self.avgBackupTime/(self.timeSteps-1)
@@ -312,14 +314,14 @@ class MOMDP(object):
 		
 		elif discOpt == 2: 
 			totObst = self.numUR
-			dim = np.linspace(0, 1, 4) 
+			dim = np.linspace(0.0, 1.0, 4) 
 			  
 			x = (dim, )
 			for i in range(1, totObst):
 				x = x + (dim, )
 
 			self.obstBelief  = np.vstack( np.meshgrid(*x) ).reshape(totObst, -1).T
-
+		
 		elif discOpt == 3: 
 			self.obstBelief = np.array([self.comb[0]])
 			for i in range(1, len(self.comb)):
@@ -345,10 +347,34 @@ class MOMDP(object):
 			for i in range(1, len(self.comb)):
 				self.obstBelief = np.concatenate( (self.obstBelief, np.array([self.comb[i]])) , axis=0)
 
-			for i in range(0, len(self.comb)):
+			
+			if self.unGoal == True:
+				for i in range(0, len(self.comb)):
+						toAdd = np.array([self.comb[i]]).astype(float)
+						for j in range(0, self.numObs):
+							if toAdd[0,j] > 0.5: toAdd[0,j] = 0.9
+							if toAdd[0,j] < 0.5: toAdd[0,j] = 0.7
+						
+						for j in range(0, self.numUGoal):
+							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.9
+							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.7				
+						self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+
+						toAdd = np.array([self.comb[i]]).astype(float)
+						for j in range(0, self.numObs):
+							if toAdd[0,j] > 0.5: toAdd[0,j] = 0.9
+							if toAdd[0,j] < 0.5: toAdd[0,j] = 0.1
+						
+						for j in range(0, self.numUGoal):
+							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.9
+							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.1				
+						self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+
+			else:
+				for i in range(0, len(self.comb)):
 					toAdd = np.array([self.comb[i]]).astype(float)
-					toAdd[toAdd > 0.5] = 0.75
-					toAdd[toAdd < 0.5] = 0.25
+					toAdd[toAdd > 0.5] = 0.9
+					toAdd[toAdd < 0.5] = 0.1
 					self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
 
 
@@ -473,7 +499,7 @@ class MOMDP_TOQ(MOMDP):
 		# super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal) # uncomment for py3
 		super(MOMDP_TOQ, self).__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal) # uncomment for py2
 
-	def  backupLoopBeliefPoint(self, t, xt):
+	def  backupLoopBeliefPoint(self, xt):
 		J_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))
 		V_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))
 						
@@ -492,8 +518,8 @@ class MOMDP_TOQ(MOMDP):
 			for a in range(0, self.numA):
 				for xNext in self.sucessorStatesList[xt][a]:
 					Mbt = np.dot(self.M[a,xt,xNext], bt)
-					J_lambda_kax = np.dot(self.J[t+1,xNext].T, Mbt.T)
-					V_lambda_kax = np.dot(self.V[t+1,xNext].T, Mbt.T)
+					J_lambda_kax = np.dot(self.J[self.t+1,xNext].T, Mbt.T)
+					V_lambda_kax = np.dot(self.V[self.t+1,xNext].T, Mbt.T)
 
 					idxOptList = []
 					for o in range(0, self.numZ):
@@ -503,8 +529,8 @@ class MOMDP_TOQ(MOMDP):
 						sumVec = J_lambda_kaxo + V_lambda_kax[:, o]
 						idxOptList.append(np.argmax(sumVec))
 
-					V_alpha_a[:, a] += np.tensordot(self.V[t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
-					J_alpha_a[:, a] += np.tensordot(self.J[t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
+					V_alpha_a[:, a] += np.tensordot(self.V[self.t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
+					J_alpha_a[:, a] += np.tensordot(self.J[self.t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
 
 				# Select Cost
 				if xt in self.goal:
@@ -526,8 +552,8 @@ class MOMDP_TOQ(MOMDP):
 				V_out[:,j] = V_alpha_a[:,idxOpt]
 				J_out[:,j] = J_alpha_a[:,idxOpt]
 
-		self.V[t,xt] = V_out
-		self.J[t,xt] = J_out
+		self.V[self.t,xt] = V_out
+		self.J[self.t,xt] = J_out
 
 	def evaluatePolicy(self, t, xt, bt):
 		V_alpha_a = np.zeros((self.numZ, self.numA))
@@ -621,6 +647,13 @@ class MOMDP_TOQ_d(MOMDP):
 		self.computeValFun()
 		print("Done Value Function Approximation")
 	
+	def initPointBased(self, discOpt):
+		self.Belief = self.momdpSegway.Belief
+		self.obstBelief =self.momdpSegway.obstBelief
+		self.numBeliefPoints = self.obstBelief.shape[0]
+		print("Belif points: ", self.numBeliefPoints)
+
+
 	def locateUR(self, regionType):
 		# Overwriting the method locateUR: it is needed that the obstacle order is equalt to the obstacle+goal order 
 		# from the Segway policy, otherwise we cannot use the value function from the Segway
@@ -696,7 +729,7 @@ class MOMDP_TOQ_d(MOMDP):
 					O[:, self.stateMap[i,j]] = P_observe[:, e]
 		return O
 
-	def  backupLoopBeliefPoint(self, t, xt):
+	def  backupLoopBeliefPoint(self, xt):
 		J_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))
 		V_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))
 
@@ -714,8 +747,8 @@ class MOMDP_TOQ_d(MOMDP):
 			for a in range(0, self.numA):
 				for xNext in self.sucessorStatesList[xt][a]:
 					Mbt = np.dot(self.M[a,xt,xNext], bt)
-					J_lambda_kax = np.dot(self.J[t+1,xNext].T, Mbt.T)
-					V_lambda_kax = np.dot(self.V[t+1,xNext].T, Mbt.T)
+					J_lambda_kax = np.dot(self.J[self.t+1,xNext].T, Mbt.T)
+					V_lambda_kax = np.dot(self.V[self.t+1,xNext].T, Mbt.T)
 
 					idxOptList = []
 					for o in range(0, self.numZ):
@@ -725,8 +758,8 @@ class MOMDP_TOQ_d(MOMDP):
 						sumVec = J_lambda_kaxo + V_lambda_kax[:, o]
 						idxOptList.append(np.argmax(sumVec))
 
-					V_alpha_a[:, a] += np.tensordot(self.V[t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
-					J_alpha_a[:, a] += np.tensordot(self.J[t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
+					V_alpha_a[:, a] += np.tensordot(self.V[self.t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
+					J_alpha_a[:, a] += np.tensordot(self.J[self.t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
 
 				# Select Cost
 				if xt in self.goal:
@@ -749,8 +782,8 @@ class MOMDP_TOQ_d(MOMDP):
 				V_out[:,j] = V_alpha_a[:,idxOpt]
 				J_out[:,j] = J_alpha_a[:,idxOpt]
 
-		self.V[t,xt] = V_out
-		self.J[t,xt] = J_out
+		self.V[self.t,xt] = V_out
+		self.J[self.t,xt] = J_out
 
 
 	def evaluatePolicy(self, t, xt, bt):
@@ -818,7 +851,7 @@ class MOMDP_TO(MOMDP):
 	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt):  
 		super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt) 
 
-	def  backupLoopBeliefPoint(self, t, xt):
+	def  backupLoopBeliefPoint(self, xt):
 		V_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))			
 		
 		for j in range(0, np.shape(self.Belief)[1]): # loop over belief points
@@ -833,13 +866,13 @@ class MOMDP_TO(MOMDP):
 			for a in range(0, self.numA):
 				for xNext in self.sucessorStatesList[xt][a]:
 					Mbt = np.dot(self.M[a,xt,xNext], bt)
-					V_lambda_kax = np.dot(self.V[t+1,xNext].T, Mbt.T)
+					V_lambda_kax = np.dot(self.V[self.t+1,xNext].T, Mbt.T)
 
 					idxOptList = []
 					for o in range(0, self.numZ):
 						idxOptList.append(np.argmax(V_lambda_kax[:, o]))
 
-					V_alpha_a[:, a] += np.tensordot(self.V[t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
+					V_alpha_a[:, a] += np.tensordot(self.V[self.t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
 
 				# Select Cost
 				if xt in self.goal:
@@ -854,7 +887,7 @@ class MOMDP_TO(MOMDP):
 			else:
 				V_out[:,j] = V_alpha_a[:,idxOpt]
 
-		self.V[t,xt] = V_out
+		self.V[self.t,xt] = V_out
 
 
 	def evaluatePolicy(self, t, xt, bt):
@@ -902,7 +935,7 @@ class MOMDP_Q(MOMDP):
 	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt):  
 		super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt) 
 
-	def  backupLoopBeliefPoint(self, t, xt):
+	def  backupLoopBeliefPoint(self, xt):
 		J_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))				
 		
 		for j in range(0, np.shape(self.Belief)[1]): # loop over belief points
@@ -917,13 +950,13 @@ class MOMDP_Q(MOMDP):
 			for a in range(0, self.numA):
 				for xNext in self.sucessorStatesList[xt][a]:
 					Mbt_vec = np.dot(self.M[a,xt,xNext], bt)
-					J_lambda_kax = np.dot(self.J[t+1,xNext].T, Mbt_vec.T)
+					J_lambda_kax = np.dot(self.J[self.t+1,xNext].T, Mbt_vec.T)
 
 					idxOptList = []
 					for o in range(0, self.numZ):
 						idxOptList.append(np.argmax(J_lambda_kax[:, o] ))
 
-					J_alpha_a[:, a] += np.tensordot(self.J[t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
+					J_alpha_a[:, a] += np.tensordot(self.J[self.t+1,xNext,:,idxOptList], self.M[a,xt,xNext], 2)
 
 
 				# Select Cost
@@ -938,7 +971,7 @@ class MOMDP_Q(MOMDP):
 			else:
 				J_out[:,j] = J_alpha_a[:,idxOpt]
 
-		self.J[t,xt] = J_out
+		self.J[self.t,xt] = J_out
 
 
 	def evaluatePolicy(self, t, xt, bt):
@@ -973,122 +1006,6 @@ class MOMDP_Q(MOMDP):
 			actionSel	    =  np.where(actionSpec==np.max(actionSpec))
 			# Print to sceen
 			if self.printLevel > 2: print("Possible Moves ", self.actVec[actionSel])
-			if self.printLevel > 2: print("Selected Action: ", self.actVec[actionSel[0][0]])
-
-			selectedAction = actionSel[0][0]
-
-		if self.printLevel >= 2: print("Probability satinsfying spec: ", probability, ". Expected Cost: ", cost)
-
-		return selectedAction, probability, cost
-
-
-class MOMDP_TOQ_notVectorized(MOMDP):
-
-	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt):  
-		super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt) 
-
-	def  backupLoopBeliefPoint(self, t, xt):
-		J_out		  = np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))
-		V_out		  = np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))
-						
-		for j in range(0, np.shape(self.Belief)[1]): # loop over belief points
-			# for each belief point we are going to compute a cost vector -->
-			# initialize cost and value function vector for all action. Afterwards,
-			# we are going to take the max
-			V_alpha_a      = np.zeros((np.shape(self.Belief)[0], self.numA))
-			V_cost_alpha_a = np.zeros(self.numA)
-
-			J_alpha_a      = np.zeros((np.shape(self.Belief)[0], self.numA))
-			J_cost_alpha_a = np.zeros( self.numA)
-			
-			bt = self.Belief[:, j]
-			
-			for a in range(0, self.numA):
-				for xNext in self.sucessorStatesList[xt][a]:
-					for o in range(0, self.numZ):
-						J_lambda_kaxo = np.dot(self.J[t+1, xNext].T, np.dot(self.M[a,xt,xNext,o], bt))
-						V_lambda_kaxo = np.dot(self.V[t+1, xNext].T, np.dot(self.M[a,xt,xNext,o], bt))
-
-						idx = np.where( (J_lambda_kaxo >= np.max(J_lambda_kaxo)-self.toll) & (J_lambda_kaxo <= np.max(J_lambda_kaxo)+self.toll) )			
-						possOpt		 = -np.inf * np.ones(np.shape(V_lambda_kaxo)[0])
-						possOpt[idx] =  V_lambda_kaxo[idx]
-						idxOpt = np.argmax(possOpt)
-						V_alpha_a[:, a] += np.dot(self.M[a,xt,xNext,o].T, self.V[t+1,xNext,:, idxOpt])
-						J_alpha_a[:, a] += np.dot(self.M[a,xt,xNext,o].T, self.J[t+1,xNext,:, idxOpt])
-
-					# Select Cost
-					if xt in self.goal:
-						V_cost_alpha_a[a] = 1 + np.dot(V_alpha_a[:, a].T, bt)
-						J_cost_alpha_a[a] = 1
-					else:
-						V_cost_alpha_a[a] = np.dot(V_alpha_a[:, a].T, bt)
-						J_cost_alpha_a[a] = np.dot(J_alpha_a[:, a].T, bt)
-
-			# take the max to compute the vector at the belief point
-			optVector = -np.inf * np.ones(self.numA);
-			idx = np.where( (J_cost_alpha_a >= np.max(J_cost_alpha_a)-self.toll) & (J_cost_alpha_a <= np.max(J_cost_alpha_a)+self.toll) )			
-			optVector[idx] =  V_cost_alpha_a[idx]
-			idxOpt = np.argmax(optVector)
-
-			if xt in self.goal:
-				V_out[:,j] = np.ones(np.shape(self.Belief)[0]) + V_alpha_a[:,idxOpt]
-				J_out[:,j] = np.ones(np.shape(self.Belief)[0])
-			else:
-				V_out[:,j] = V_alpha_a[:,idxOpt]
-				J_out[:,j] = J_alpha_a[:,idxOpt]
-
-		self.V[t][xt] = V_out
-		self.J[t][xt] = J_out
-
-	def evaluatePolicy(self, t, xt, bt):
-		V_alpha_a = np.zeros((self.numZ, self.numA))
-		J_alpha_a = np.zeros((self.numZ, self.numA))
-		actionCost = []
-		actionSpec = []
-	
-		for a in range(0, self.numA):
-			for xNext in self.sucessorStates(xt, a):
-				for o in range(0, self.numZ):
-					# Cost Value Function Update
-					J_lambda_kaxo = np.dot(self.J[t+1,xNext].T, np.dot( self.M[a,xt,xNext,o], bt ))
-					V_lambda_kaxo = np.dot(self.V[t+1,xNext].T, np.dot( self.M[a,xt,xNext,o], bt ))
-
-					idx = np.where( (J_lambda_kaxo >= np.max(J_lambda_kaxo)-self.toll) & (J_lambda_kaxo <= np.max(J_lambda_kaxo)+self.toll) )			
-					possOpt		 = -np.inf * np.ones(np.shape(V_lambda_kaxo)[0])
-					possOpt[idx] =  V_lambda_kaxo[idx]
-					
-					idxOpt = np.argmax(possOpt)
-					
-					V_alpha_a[:, a] = V_alpha_a[:, a] + np.dot(self.M[a,xt,xNext,o].T, self.V[t+1,xNext,:, idxOpt])
-					J_alpha_a[:, a] = J_alpha_a[:, a] + np.dot(self.M[a,xt,xNext,o].T, self.J[t+1,xNext,:, idxOpt])
-
-			# Select Cost
-			if xt in self.goal: stageCost = 1;
-			else: stageCost = 0
-			actionCost.append(stageCost + np.dot(V_alpha_a[:, a], bt))
-			actionSpec.append(np.dot(J_alpha_a[:, a], bt))
-
-
-		# Pick best action
-		probability = max(actionSpec)
-		cost		= max(actionCost)
-		if self.printLevel > 2: print("Constraint vector: ", actionSpec)
-		if self.printLevel > 2: print("Cost Vector: ", actionCost)
-		if probability == 0:
-			if self.printLevel >= 1: print("Abort Mission")
-			probability    = 0
-			selectedAction = 0
-			cost           =  np.inf
-		else:
-			# Pick action with highest prob sat specs
-			action = np.where(np.array(actionSpec) >= probability-self.toll)
-			# Among the one with highest prob sat specs pick best cost
-			possOpt		    = -np.inf * np.ones(self.numA)
-			possOpt[action] =  np.array(actionCost)[action]
-			actionSel	    =  np.where(possOpt==np.max(possOpt))
-			# Print to sceen
-			if self.printLevel > 2: print("Possible Moves ", self.actVec[action])
-			if self.printLevel > 2: print("Same Cost Moves: ", self.actVec[actionSel])
 			if self.printLevel > 2: print("Selected Action: ", self.actVec[actionSel[0][0]])
 
 			selectedAction = actionSel[0][0]

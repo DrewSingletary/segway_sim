@@ -52,7 +52,7 @@ def main():
     goalSetAndStateMsg  = goalSetAndState()   
 
     # Import MOMDP
-    fileName  = sys.path[0]+'/pyFun/TOQ_1/MOMDP_obj_5x5_3'
+    fileName  = sys.path[0]+'/pyFun/TOQ_1/MOMDP_obj_5x5_3.pkl'
     pickle_in = open(fileName,"rb")
     momdp     = pickle.load(pickle_in)
 
