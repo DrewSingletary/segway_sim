@@ -24,7 +24,9 @@ from visualization_msgs.msg import MarkerArray
 import rospy
 import math
 from uav_sim_ros.msg import cmd
-
+sys.path.append(sys.path[0]+'/pyFun')
+print("sys.path: ", sys.path)
+from PredictiveController import MPC
 
 homedir = os.path.expanduser("~")    
 
@@ -45,11 +47,6 @@ def main():
     cmd_des_pub = rospy.Publisher('/uav_sim_ros/uav_cmd_des', cmd, queue_size=1)
     cmd_des = cmd()   
 
-    # publisherDrone = rospy.Publisher('/cyberpod_sim_ros/visualization_marker_drone', Marker)
-    # markerDrone = Marker()
-    # markerDrone = initMarkeDrone(x_start, y_start)
-    # publisherDrone.publish(markerDrone)
-
     # Initialize subscriber and publisher
     highLevelMsg = highLevelGoalState(x_start, y_start) # this object read the true state (not the estimated)
     stateMeasurements = StatateMeasurements() # this object read the true state (not the estimated)
@@ -62,20 +59,42 @@ def main():
 
     ## Init System Matrices
     A = np.eye(4) + dt*np.array([[0, 1, 0, 0],
-                  [0, 1, 0, 0], 
-                  [0, 0, 0, 1],
-                  [0, 0, 0, 0]])
-    B = dt*np.array([[0, 0],[1, 0], [0, 0],[0, 1]])
-    Q = np.diag([1,1,1,1])
-    R = np.diag([1000,1000])
+                                 [0, 0, 0, 0], 
+                                 [0, 0, 0, 1],
+                                 [0, 0, 0, 0]])
+    B = dt*np.array([[0, 0],
+                     [1, 0], 
+                     [0, 0],
+                     [0, 1]])
+
+    print(A)
+    print(B)
+
+    Q  = 1000 * np.diag([1,0,1,0])
+    Qf = 1000*np.diag([1,1,1,1])
+    R  = 0.001*np.diag([1,1])
     
     K, X, eigVals = dlqr(A,B,Q,R)
     Acl = np.array(A-B*K)
     K = np.array(K)
 
-    # drone_state.x = xDrone[-1][0]
-    # drone_state.y = xDrone[-1][2]
-    # drone_state_pub.publish(drone_state)
+
+    N = 20
+    Fx = np.array([[ 0,  1, 0, 0],
+                   [ 0, -1, 0, 0],
+                   [ 0,  0, 0, 1],
+                   [ 0,  0, 0,-1]])
+    bx = 10*np.ones(4)
+
+    aMax = 5000
+    Fu = np.kron(np.eye(2), np.array([1, -1])).T
+    bu = np.array([[aMax],  
+                   [aMax],  
+                   [aMax],  
+                   [aMax]]) 
+    
+    xRef = np.zeros(4)
+    mpc  = MPC(4, 2, N, Q, R, Qf, Fx, bx, Fu, bu, xRef, A, B)
 
     cmd_des.vDes[0] = 0.0
     cmd_des.vDes[1] = 0.0
@@ -87,33 +106,15 @@ def main():
         if (stateMeasurements.state != []):
             ## Solve MPC
             goalState = np.array([highLevelMsg.xGoal, 0, highLevelMsg.yGoal, 0])
-            # errorState = xDrone[-1] - goalState
-            errorState = droneState.state - goalState
-            # print("droneState.state: ", droneState.state)
-            # print("errorState: ", errorState)
-            u = np.dot(-K, errorState)
-            nextX = np.array(np.dot(A, xDrone[-1]) + np.dot(B, u))     
-            xDrone.append( nextX)
-
-            # print("next: ", nextX)
-            # print("goal state: ", goalState)
-
-            # ## Apply input and publish state
-            # drone_state.x = xDrone[-1][0]
-            # drone_state.y = xDrone[-1][2]
-            # drone_state_pub.publish(drone_state)
+            mpc.xRef = goalState
+            mpc.solve(droneState.state) 
 
             # print(xDrone[-1])
-            cmd_des.vDes[0] = -3.0*errorState[0]
-            cmd_des.vDes[1] = -3.0*errorState[2]
+            cmd_des.vDes[0] = mpc.xPred[1,1]#-3.0*errorState[0]
+            cmd_des.vDes[1] = mpc.xPred[1,3]#-3.0*errorState[2]
             cmd_des.vDes[2] = 0.0
             cmd_des.vDes[3] = 0.0
             cmd_des_pub.publish(cmd_des)
-            # publish location
-            # markerDrone.pose.position.x = drone_state.x
-            # markerDrone.pose.position.y = drone_state.y
-
-            # publisherDrone.publish(markerDrone)    
 
             rate.sleep()
             

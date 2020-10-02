@@ -10,10 +10,10 @@ from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TOQ_d
 def main():
 	load          = 0 # 0 = compute policy and save policy object, 1 = load policy object, -1 = compute policy but DO NOT save it
 	digitsResults = 6 # number of digits to print, just for visual output 
-	printLevel    = 4 # 0 = only value function update and results, 1 = minimal, 2 = verbose
+	printLevel    = 0 # 0 = only value function update and results, 1 = minimal, 2 = verbose
 	
 	# Evaluate single policy. Details in evaluateSinglePolicy() function
-	discOpt = 2
+	discOpt = 4
 	evaluateSinglePolicy(load, digitsResults, printLevel, discOpt)	
 
 def evaluateSinglePolicy(load, digitsResults, printLevel, discOpt):

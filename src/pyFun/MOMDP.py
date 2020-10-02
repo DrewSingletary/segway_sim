@@ -300,7 +300,7 @@ class MOMDP(object):
 		# Set discOpt = 1 for the results from table 1
 		# Set discOpt = 2 for the results from table 2
 		# Options discOpt = 3 and discOpt = 4 lead to the same results as discOpt = 2.
-		
+
 		if discOpt == 1:
 			self.obstBelief = np.eye(self.numUR)
 			self.obstBelief = np.concatenate( (self.obstBelief, -np.eye(self.numUR)+np.ones((self.numUR,self.numUR)) ) , axis=0)
@@ -350,25 +350,105 @@ class MOMDP(object):
 			
 			if self.unGoal == True:
 				for i in range(0, len(self.comb)):
-						toAdd = np.array([self.comb[i]]).astype(float)
-						for j in range(0, self.numObs):
-							if toAdd[0,j] > 0.5: toAdd[0,j] = 0.9
-							if toAdd[0,j] < 0.5: toAdd[0,j] = 0.7
-						
-						for j in range(0, self.numUGoal):
-							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.9
-							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.7				
-						self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+					# 3
+					toAdd = np.array([self.comb[i]]).astype(float)
+					for j in range(0, self.numObs):
+						if toAdd[0,j] > 0.5: toAdd[0,j] = 0.95
+						if toAdd[0,j] < 0.5: toAdd[0,j] = 0.25
+					
+					for j in range(0, self.numUGoal):
+						if j == 0:
+							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.25
+							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.95
+						else:
+							toAdd[0,j+self.numObs] = 0
+					self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
 
-						toAdd = np.array([self.comb[i]]).astype(float)
-						for j in range(0, self.numObs):
-							if toAdd[0,j] > 0.5: toAdd[0,j] = 0.9
-							if toAdd[0,j] < 0.5: toAdd[0,j] = 0.1
-						
-						for j in range(0, self.numUGoal):
-							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.9
-							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.1				
-						self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+					# 4
+					toAdd = np.array([self.comb[i]]).astype(float)
+					for j in range(0, self.numObs):
+						if toAdd[0,j] > 0.5: toAdd[0,j] = 0.95
+						if toAdd[0,j] < 0.5: toAdd[0,j] = 0.25
+					
+					for j in range(0, self.numUGoal):
+						if j == 1:
+							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.25
+							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.95
+						else:
+							toAdd[0,j+self.numObs] = 0
+					self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+
+			else:
+				for i in range(0, len(self.comb)):
+					toAdd = np.array([self.comb[i]]).astype(float)
+					toAdd[toAdd > 0.5] = 0.9
+					toAdd[toAdd < 0.5] = 0.1
+					self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+
+		elif discOpt == 5:
+			self.obstBelief = np.array([self.comb[0]])
+			for i in range(1, len(self.comb)):
+				self.obstBelief = np.concatenate( (self.obstBelief, np.array([self.comb[i]])) , axis=0)
+
+			
+			if self.unGoal == True:
+				for i in range(0, len(self.comb)):
+				
+					# 1
+					toAdd = np.array([self.comb[i]]).astype(float)
+					for j in range(0, self.numObs):
+						if toAdd[0,j] > 0.5: toAdd[0,j] = 0.95
+						if toAdd[0,j] < 0.5: toAdd[0,j] = 0.25
+					
+					for j in range(0, self.numUGoal):
+						if j == 0:
+							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.95
+							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.25
+						else:
+							toAdd[0,j+self.numObs] = 0
+					self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+
+					# 2
+					toAdd = np.array([self.comb[i]]).astype(float)
+					for j in range(0, self.numObs):
+						if toAdd[0,j] > 0.5: toAdd[0,j] = 0.95
+						if toAdd[0,j] < 0.5: toAdd[0,j] = 0.25
+					
+					for j in range(0, self.numUGoal):
+						if j == 1:
+							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.95 
+							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.25
+						else:
+							toAdd[0,j+self.numObs] = 0
+					self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+
+					# 3
+					toAdd = np.array([self.comb[i]]).astype(float)
+					for j in range(0, self.numObs):
+						if toAdd[0,j] > 0.5: toAdd[0,j] = 0.95
+						if toAdd[0,j] < 0.5: toAdd[0,j] = 0.25
+					
+					for j in range(0, self.numUGoal):
+						if j == 0:
+							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.25
+							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.95
+						else:
+							toAdd[0,j+self.numObs] = 0
+					self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
+
+					# 4
+					toAdd = np.array([self.comb[i]]).astype(float)
+					for j in range(0, self.numObs):
+						if toAdd[0,j] > 0.5: toAdd[0,j] = 0.95
+						if toAdd[0,j] < 0.5: toAdd[0,j] = 0.25
+					
+					for j in range(0, self.numUGoal):
+						if j == 1:
+							if toAdd[0,j+self.numObs] < 0.5: toAdd[0,j+self.numObs] = 0.25
+							if toAdd[0,j+self.numObs] > 0.5: toAdd[0,j+self.numObs] = 0.95
+						else:
+							toAdd[0,j+self.numObs] = 0
+					self.obstBelief = np.concatenate( (self.obstBelief, toAdd) , axis=0)
 
 			else:
 				for i in range(0, len(self.comb)):
