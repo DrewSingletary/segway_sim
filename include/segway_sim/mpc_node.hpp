@@ -19,8 +19,8 @@
 #include <string>
 #include <ros/package.h>
 #include <osqp.h>
-#include <mpc/mpc.hpp>
-#include <mpc/segway_example.hpp>
+#include <mpc.hpp>
+#include <segway_example.hpp>
 
 #define MSG_MODE 'M'
 
