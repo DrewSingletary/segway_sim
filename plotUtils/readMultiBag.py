@@ -10,8 +10,8 @@ import scipy.io as sio
 sys.path.append('../src/pyFun')
 from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 
-# bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-09-17-21-59.bag')
-bag = rosbag.Bag('/home/drew/rosbag/_2020-10-10-00-08-58.bag')
+# bag = rosbag.Bag('/home/drew/rosbag/_2020-10-09-17-21-59.bag')
+bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-10-12-07-32.bag')
 option = 0
 
 if option == 1:
@@ -113,7 +113,7 @@ def main():
 	xy_drn_array = np.array(xy_drn)
 
 	BeliefArray = np.array(Belief)
-	probObstArray = np.array(probObst)
+	probObstArray = 1-np.array(probObst)
 	plt.figure()
 	if option == 1:
 		plt.plot(time_belief, probMiss,'-k', label='Mission success')
@@ -275,10 +275,7 @@ def main():
 	if momdp.unGoal == False:
 		addStaticComponents(momdp, ax, 1, goalColor)
 	else:
-		if option == 1:
-			totProb = [0.3, 1.0]
-		else:
-			totProb = [0.3, 1.0]
+		totProb = [0.3, 0.3]
 		goalPatchList = addDynamicComponent(momdp, ax, momdp.col_goal, momdp.row_goal, goalColor, totProb)
 	
 	# Add known static obstacles

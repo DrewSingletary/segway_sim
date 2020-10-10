@@ -12,7 +12,7 @@ import sys
 import time
 import matplotlib.pyplot as plt
 from segway_sim.msg import state
-from uav_sim_ros.msg import state as stateDrone
+from segway_sim.msg import stateDrone
 from segway_sim.msg import valFunCnst
 from segway_sim.msg import optSol
 import scipy.io as sio
@@ -25,7 +25,7 @@ from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 import rospy
 import math
-from uav_sim_ros.msg import cmd
+from segway_sim.msg import cmdDrone as cmd
 sys.path.append(sys.path[0]+'/pyFun')
 print("sys.path: ", sys.path)
 from PredictiveController import MPC
@@ -47,8 +47,8 @@ def main():
     optSol_pub = rospy.Publisher('/segway_sim/drone_opt', optSol, queue_size=1)
     optSol_msg = optSol()
 
-    drone_state_pub = rospy.Publisher('/segway_sim/drone_state', state, queue_size=1)
-    drone_state = state()  
+    drone_state_pub = rospy.Publisher('/segway_sim/drone_state', stateDrone, queue_size=1)
+    drone_state = stateDrone()  
 
     cmd_des_pub = rospy.Publisher('/uav_sim_ros/uav_cmd_des', cmd, queue_size=1)
     cmd_des = cmd()   

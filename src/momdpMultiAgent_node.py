@@ -249,7 +249,7 @@ def updateObstacles(markerArray, momdpSegway, bt):
         goalBeliefGoal = []
         [goalBeliefGoal.append( momdpSegway.computeBelief(bt, i+momdpSegway.numObs) ) for i in range(0, momdpSegway.numUGoal)]
         for obsPr in goalBeliefGoal:
-            obstBelief.append(1-obsPr)
+            obstBelief.append(obsPr)
             markerArray.markers[counter].color.a = 1-obsPr
             counter += 1
 

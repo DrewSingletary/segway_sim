@@ -13,18 +13,18 @@ endif()
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
-	roscpp
-	message_generation
-	std_msgs
-	sensor_msgs
-	geometry_msgs
-	visualization_msgs
-	nav_msgs
-	tf
-	pcl_conversions
-	pcl_ros
+  roscpp
+  message_generation
+  std_msgs
+  sensor_msgs
+  geometry_msgs
+  visualization_msgs
+  nav_msgs
+  tf
+  pcl_conversions
+  pcl_ros
   ambercortex_ros
-	)
+  )
 
 # Chose osqp version
 # if(OSQP_EMBEDDED)
@@ -62,6 +62,8 @@ add_message_files(
   linearMatrices.msg
   lowLevelLog.msg
   highLevelBelief.msg
+  cmdDrone.msg
+  stateDrone.msg
 )
 
 # Generate services in the 'srv' folder
@@ -86,7 +88,8 @@ catkin_package(
 	             tf
 	             pcl_conversions
 	             pcl_ros
-               ambercortex_ros)
+               ambercortex_ros
+               )
 
 ###########
 ## Build ##
@@ -102,6 +105,7 @@ add_executable(manual_teleop_node src/manual_teleop_node.cpp src/keyboard.cpp)
 add_executable(sensor_node src/sensor_node.cpp)
 add_executable(ekf_node src/ekf_node.cpp src/ekf.cpp)
 add_executable(mpc_node src/mpc_node.cpp)
+add_executable(mpc_drone_node src/mpc_drone_node.cpp)
 add_executable(low_level_node src/low_level_node.cpp)
 
 # Ensure messages built first
@@ -111,6 +115,7 @@ add_dependencies(manual_teleop_node segway_sim_generate_messages_cpp)
 add_dependencies(sensor_node segway_sim_generate_messages_cpp)
 add_dependencies(ekf_node segway_sim_generate_messages_cpp)
 add_dependencies(mpc_node segway_sim_generate_messages_cpp)
+add_dependencies(mpc_drone_node segway_sim_generate_messages_cpp)
 add_dependencies(low_level_node segway_sim_generate_messages_cpp)
 
 
@@ -140,6 +145,14 @@ target_link_libraries(ekf_node
 )
 
 target_link_libraries(mpc_node
+                      ${catkin_LIBRARIES}
+                      Eigen3::Eigen
+                      ${OSQP_MODE}::${OSQP_MODE_LIB}
+                      mpc::mpc
+                      -ldl
+)
+
+target_link_libraries(mpc_drone_node
                       ${catkin_LIBRARIES}
                       Eigen3::Eigen
                       ${OSQP_MODE}::${OSQP_MODE_LIB}
