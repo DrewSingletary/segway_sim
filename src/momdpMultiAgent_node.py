@@ -170,6 +170,7 @@ def main():
                 msghighLevelBelief.probMiss = pSuccess
                 for i in range(0, bt[-2].shape[0]):
                     msghighLevelBelief.bt[i] = bt[-2][i]
+
                 for i in range(0, len(obstBelief)):
                     msghighLevelBelief.prob[i] = obstBelief[i]
 
@@ -243,10 +244,12 @@ def updateObstacles(markerArray, momdpSegway, bt):
     for obsPr in obstBelief:
         markerArray.markers[counter].color.a = 1-obsPr
         counter += 1
+
     if momdpSegway.unGoal == True:
-        goalBelief = []
-        [goalBelief.append( momdpSegway.computeBelief(bt, i+momdpSegway.numObs) ) for i in range(0, momdpSegway.numUGoal)]
-        for obsPr in goalBelief:
+        goalBeliefGoal = []
+        [goalBeliefGoal.append( momdpSegway.computeBelief(bt, i+momdpSegway.numObs) ) for i in range(0, momdpSegway.numUGoal)]
+        for obsPr in goalBeliefGoal:
+            obstBelief.append(1-obsPr)
             markerArray.markers[counter].color.a = 1-obsPr
             counter += 1
 

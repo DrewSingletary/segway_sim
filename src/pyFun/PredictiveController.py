@@ -75,7 +75,6 @@ class MPC():
             self.computeLTVdynamics()
 
         self.buildIneqConstr()
-        self.buildCost()
         self.buildEqConstr()
 
         self.buildCost()
@@ -233,11 +232,11 @@ class MPC():
         qp_l = hstack([l, b])
         qp_u = hstack([h, b])
 
-        self.osqp.setup(P=P, q=q, A=qp_A, l=qp_l, u=qp_u, verbose=False, polish=False)
+        self.osqp.setup(P=P, q=q, A=qp_A, l=qp_l, u=qp_u, verbose=False, polish=False, max_iter=200)
         if initvals is not None:
             self.osqp.warm_start(x=initvals)
         res = self.osqp.solve()
-        if res.info.status_val == 1:
+        if res.info.status_val > 0:
             self.feasible = 1
         else:
             self.feasible = 0

@@ -140,7 +140,8 @@
 			<param name="offset_angle" value="0.138324423615"/>
 		</node>
 
-	<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/ugo/rosbag/"/> 
+	<!-- <node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/ugo/rosbag/"/>  -->
+	<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/drew/rosbag/"/> 
 
 	</group>
 </launch>

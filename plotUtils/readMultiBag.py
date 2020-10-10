@@ -10,9 +10,15 @@ import scipy.io as sio
 sys.path.append('../src/pyFun')
 from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 
-bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-09-17-21-59.bag')
+# bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-09-17-21-59.bag')
+bag = rosbag.Bag('/home/drew/rosbag/_2020-10-10-00-08-58.bag')
+option = 0
 
-fileName = sys.path[0]+'/../src/pyFun/multiAgent/segway_7x7_2.pkl'
+if option == 1:
+	fileName = sys.path[0]+'/../src/pyFun/multiAgent/segway_7x7_2.pkl'
+else:
+	fileName = sys.path[0]+'/../src/pyFun/multiAgent/segway_7x7ug_2.pkl'
+
 pickle_in = open(fileName,"rb")
 momdp = pickle.load(pickle_in)
 
@@ -79,7 +85,7 @@ def saveGit(name, xaxis, variableAnimate, color, labels, yLimits):
 	        ax.set(xlim=(0, i+1), ylim=yLimits)
     dataPoints = variableAnimate[0].shape[0]
 
-    anim = FuncAnimation(fig, update, frames=np.arange(0, dataPoints), interval=100)
+    anim = FuncAnimation(fig, update, frames=np.arange(0, dataPoints+1), interval=100)
     anim.save(name+'.gif', dpi=80, writer='imagemagick')
 
 def main():
@@ -98,7 +104,6 @@ def main():
 		Belief.append(msg.bt)
 		probObst.append(msg.prob)
 		time_belief.append((len(time_belief)))
-		print(msg.targetPosDrone)
 		if msg.targetPosDrone[0] > 0 and msg.targetPosDrone[1]>0:
 			xy_drn.append(msg.targetPosDrone)
 		if msg.targetPosSegway[0] > 0 and msg.targetPosSegway[1]>0:
@@ -110,12 +115,22 @@ def main():
 	BeliefArray = np.array(Belief)
 	probObstArray = np.array(probObst)
 	plt.figure()
-	plt.plot(time_belief, probMiss,'-k', label='Mission success')
-	plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
-	plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
+	if option == 1:
+		plt.plot(time_belief, probMiss,'-k', label='Mission success')
+		plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
+		plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
+	else:
+		plt.plot(time_belief, probMiss,'-k', label='Mission success')
+		plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
+		plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
+		plt.plot(time_belief, probObstArray[:,2],'-or', label='G1')
+		plt.plot(time_belief, probObstArray[:,3],'-oy', label='G2')
 	plt.legend()
-	
-	saveGit('prob', time_belief, [np.array(probMiss), probObstArray[:,0], probObstArray[:,1]], ['k','b','g'],['Mission', 'R1', 'R2'], (-0.1, 1.3))
+
+	if option == 1:
+		saveGit('prob', time_belief, [np.array(probMiss), probObstArray[:,0], probObstArray[:,1]], ['k','b','g'],['Mission', 'R1', 'R2'], (-0.1, 1.3))
+	else:
+		saveGit('prob', time_belief, [np.array(probMiss), probObstArray[:,0], probObstArray[:,1], probObstArray[:,2], probObstArray[:,3]], ['k','b','g','r','y'],['Mission', 'R1', 'R2', 'G1', 'G2'], (-0.1, 1.3))
 	## =======================================================
 	## Read and plot INPUT
 	## =======================================================
@@ -260,8 +275,12 @@ def main():
 	if momdp.unGoal == False:
 		addStaticComponents(momdp, ax, 1, goalColor)
 	else:
-		totProb = [0.3, 1.0]
+		if option == 1:
+			totProb = [0.3, 1.0]
+		else:
+			totProb = [0.3, 1.0]
 		goalPatchList = addDynamicComponent(momdp, ax, momdp.col_goal, momdp.row_goal, goalColor, totProb)
+	
 	# Add known static obstacles
 	obsColor  =(0.7, 0.2, 0.2)
 	addStaticComponents(momdp, ax, -1, obsColor)
@@ -277,9 +296,16 @@ def main():
 	plt.legend()
 	# ax = fig.add_subplot(4, 1, 4)
 	ax = plt.subplot2grid((10, 1), (8, 0), rowspan=2)
-	plt.plot(time_belief, probMiss,'-k', label='Mission success')
-	plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
-	plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
+	if option == 1:
+		plt.plot(time_belief, probMiss,'-k', label='Mission success')
+		plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
+		plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
+	else:
+		plt.plot(time_belief, probMiss,'-k', label='Mission success')
+		plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
+		plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
+		plt.plot(time_belief, probObstArray[:,2],'-or', label='G1')
+		plt.plot(time_belief, probObstArray[:,3],'-oy', label='G2')
 	plt.legend()	
 	plt.xlabel('high-level time')
 
