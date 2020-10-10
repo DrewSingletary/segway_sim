@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
-	<node name="rviz_safety" pkg="rviz" type="rviz" args="-d $(find cyberpod_sim_ros)/rviz/multiAgents.rviz" required="true" />
+	<node name="rviz_safety" pkg="rviz" type="rviz" args="-d $(find segway_sim)/rviz/multiAgents.rviz" required="true" />
 
-	<arg name="cyberpod_model" default="$(find cyberpod_sim_ros)/URDF/cyberpod.urdf"/>
+	<arg name="cyberpod_model" default="$(find segway_sim)/URDF/cyberpod.urdf"/>
 	<param name="cyberpod_description" command="$(find xacro)/xacro --inorder $(arg cyberpod_model)" />
 
 	<node pkg="robot_state_publisher" type="robot_state_publisher" name="cyberpod_rviz_pub" >
