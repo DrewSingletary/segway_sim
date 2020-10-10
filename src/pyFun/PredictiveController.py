@@ -19,7 +19,7 @@ class MPC():
     Arguments:
         mpcParameters: model paramters
     """
-    def __init__(self,  n, d, N, Q, R, Qf, Fx, bx, Fu, bu, xRef, A, B):
+    def __init__(self,  n, d, N, Q, R, Qf, dR, Fx, bx, Fu, bu, xRef, A, B):
         """Initialization
         Arguments:
             mpcParameters: struct containing MPC parameters
@@ -29,7 +29,7 @@ class MPC():
         self.Q      = Q
         self.Qf     = Qf
         self.R      = R
-        self.dR     = np.zeros(d)
+        self.dR     = dR
         self.n      = n
         self.d      = d
         self.A      = A
@@ -65,7 +65,6 @@ class MPC():
         self.linearizationTime = deltaTimer
         self.timeStep = 0
 
-
     def solve(self, x0):
         """Computes control action
         Arguments:
@@ -74,8 +73,10 @@ class MPC():
         # If LTV active --> identify system model
         if self.timeVarying == True:
             self.computeLTVdynamics()
-            self.buildCost()
-            self.buildEqConstr()
+
+        self.buildIneqConstr()
+        self.buildCost()
+        self.buildEqConstr()
 
         self.buildCost()
         self.addTerminalComponents(x0)
@@ -232,7 +233,7 @@ class MPC():
         qp_l = hstack([l, b])
         qp_u = hstack([h, b])
 
-        self.osqp.setup(P=P, q=q, A=qp_A, l=qp_l, u=qp_u, verbose=False, polish=True)
+        self.osqp.setup(P=P, q=q, A=qp_A, l=qp_l, u=qp_u, verbose=False, polish=False)
         if initvals is not None:
             self.osqp.warm_start(x=initvals)
         res = self.osqp.solve()

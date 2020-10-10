@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+	<group ns="segway_sim">
+		<node name="highLevelDrone" pkg="segway_sim" type="highLevelDrone.py" output="screen">
+			<param name="expFlag" value="0"/>
+			<param name="x_start_d" value="0.5"/>
+			<param name="y_start_d" value="0.5"/>
+			<param name="x_start_s" value="0.5"/>
+			<param name="y_start_s" value="5.5"/>			
+		</node>
+	</group>
+</launch>

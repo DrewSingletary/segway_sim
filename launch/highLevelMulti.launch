@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+	<group ns="segway_sim">
+		<node name="momdpMultiAgent_node" pkg="segway_sim" type="momdpMultiAgent_node.py" output="screen">
+			<param name="expFlag" value="0"/>
+			<param name="x_start_d" value="0.5"/>
+			<param name="y_start_d" value="6.5"/>
+			<param name="x_start_s" value="0.5"/>
+			<param name="y_start_s" value="6.5"/>			
+		</node>
+	</group>
+</launch>

@@ -4,12 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
 
-<<<<<<< HEAD
 bag = rosbag.Bag('/home/ugo/rosbag/_2020-08-29-18-19-31.bag')
-=======
-# bag = rosbag.Bag('/home/ugo/rosbag/_2020-08-11-18-41-20.bag')
-bag = rosbag.Bag('/home/drew/mpc_bags/test_1.bag')
->>>>>>> c202df8d6448d08a92025df689572092a7bb1a35
 
 dt_mpc = 0.05
 

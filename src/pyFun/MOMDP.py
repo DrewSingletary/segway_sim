@@ -533,6 +533,21 @@ class MOMDP(object):
 		
 		return (x[0], y[0])
 
+	def getHighLevelState(self, pos):
+		inGrid = False
+		for i in range(0, self.numS):
+			xCoor = self.getCoordinates(i)
+			if (abs(xCoor[0]-pos[0])<=0.5) and (abs(xCoor[1]-pos[1])<=0.5):
+				inGrid = True
+				break
+
+		if inGrid == False:
+			print("out of the grid!")
+			pdb.set_trace()
+
+		return i
+
+
 	def getBoxCurren(self, x1):
 		xCoor = self.getCoordinates(x1)
 		xBox = [xCoor[0] + width for width in [self.cellWidth/2.0, -self.cellWidth/2.0]]
@@ -695,9 +710,10 @@ class MOMDP_TOQ(MOMDP):
 
 class MOMDP_TOQ_d(MOMDP):
 
-	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt, momdpSegway, unGoal = False):  
+	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt, momdpSegway):  
 
 		self.momdpSegway = momdpSegway
+		self.unGoal = momdpSegway.unGoal
 		# super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, valFunFlag = False) # uncomment for py3
 		super(MOMDP_TOQ_d, self).__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, valFunFlag = False) # uncomment for py2
 		# Initialize stage cost --> shift value function by gamma + add a vector of zeros to ensure positivity
@@ -739,9 +755,10 @@ class MOMDP_TOQ_d(MOMDP):
 		# from the Segway policy, otherwise we cannot use the value function from the Segway
 		stateLocation = []
 		self.row_obs = self.momdpSegway.row_obs[:]
-		self.row_obs.extend(self.momdpSegway.row_goal[:])
-		self.col_obs = self.momdpSegway.col_obs[:]
-		self.col_obs.extend(self.momdpSegway.col_goal[:])
+		self.col_obs = self.momdpSegway.col_obs[:]	
+		if self.momdpSegway.unGoal == True:
+			self.row_obs.extend(self.momdpSegway.row_goal[:])
+			self.col_obs.extend(self.momdpSegway.col_goal[:])
 		for i in range(0, len(self.row_obs)):
 				stateLocation.append(self.stateMap[self.row_obs[i], self.col_obs[i]])
 		return stateLocation

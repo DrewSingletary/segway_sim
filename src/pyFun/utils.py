@@ -128,7 +128,7 @@ def loadParameters(gridWorld, numObst, unGoal):
 	if gridWorld == '7x7ug_d':
 		loc        = (0,0,0,1)
 		initBelief = [0.8, 0.95, 0.90,0.05]
-
+		
 	return totTimeSteps, loc, initBelief
 
 def eveluateMOMDP(momdp, loc, initBelief, xt, bt, printLevel):
@@ -250,6 +250,14 @@ def loadGrid(gridVarOpt):
          				   [0,         0,   -1.0000,    0.5000,   -1.0000,         0,         0],
          				   [0,         0,         0,         0,   -1.0000,         0,    1.0000],]);
 
+	elif (gridVarOpt == '7x7_d_2'):
+		gridVar =np.array([[1.0,        0,         0,         0,         0,         0,         0],
+         					[0,         0,         0,         0,         0,         0,         0],
+         					[0,         0,         0,         0,         0,         0,         0],
+         					[0,         0,         0,         0,         0,         0,    0.5000],
+         					[0,         0,         0,         0,         0,         0,         0],
+         					[0,         0,         0,    0.5000,         0,         0,         0],
+         					[0,         0,         0,         0,         0,         0,         0],]);
 	elif (gridVarOpt == '7x7ug_d_2'):
 		gridVar =np.array([[1.0,        0,         0,         0,         0,         0,         0],
          					[0,         0,         0,         0,         0,         0,         0],

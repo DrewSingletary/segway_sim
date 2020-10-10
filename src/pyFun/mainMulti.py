@@ -18,16 +18,22 @@ def main():
 
 def evaluateSinglePolicy(load, digitsResults, printLevel, discOpt):
 	numObst = 2
-
-	# gridWorld = '7x7'
-	gridWorld = '7x7ug'
+ 	unGoal = True
+ 	
+ 	if unGoal == False:
+		gridWorld = '7x7'
+	else:
+		gridWorld = '7x7ug'
 	policy = 'segway'
-	momdpSegway = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = True)
+	momdpSegway = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = unGoal)
 	runSim(momdpSegway, gridWorld, numObst, policy, printLevel, digitsResults) 
+	
 	policy = 'drone'
-	gridWorld = '7x7ug_d' # IMPORTANT: for the drone there is always one goal --> unGoal = False
-	# gridWorld = '7x7_d' # IMPORTANT: for the drone there is always one goal --> unGoal = False
-	numObst = momdpDrone  = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, momdpSegway = momdpSegway)
+	if unGoal == False:
+		gridWorld = '7x7_d' # IMPORTANT: for the drone there is always one goal --> unGoal = False
+	else:
+		gridWorld = '7x7ug_d' # IMPORTANT: for the drone there is always one goal --> unGoal = False
+	momdpDrone  = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, momdpSegway = momdpSegway)
 	runSim(momdpDrone, gridWorld, numObst, policy, printLevel, digitsResults) 
 	
 def getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = False, momdpSegway = None):
@@ -39,7 +45,7 @@ def getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = Fal
 	if load <= 0: # If load <= 0 compute the policy and store it if load == 0
 		gridVar = loadGrid(gridWorld+'_'+str(numObst))
 		if policy == 'segway':
-			momdp = MOMDP_TOQ(gridVar, totTimeSteps,printLevel, policy, discOpt, unGoal = True)
+			momdp = MOMDP_TOQ(gridVar, totTimeSteps,printLevel, policy, discOpt, unGoal = unGoal)
 		elif policy == 'drone':
 			momdp = MOMDP_TOQ_d(gridVar, totTimeSteps,printLevel, policy, discOpt, momdpSegway)
 

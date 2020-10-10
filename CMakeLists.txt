@@ -61,6 +61,7 @@ add_message_files(
   optSol.msg
   linearMatrices.msg
   lowLevelLog.msg
+  highLevelBelief.msg
 )
 
 # Generate services in the 'srv' folder

@@ -37,11 +37,11 @@ def main():
     loop_rate      = 100.0
     dt             = 1.0/loop_rate
     rate           = rospy.Rate(loop_rate)
-    x_start_s        = rospy.get_param("momdpMultiAgent_node/x_start_s")
-    y_start_s        = rospy.get_param("momdpMultiAgent_node/y_start_s")
-    x_start_d        = rospy.get_param("momdpMultiAgent_node/x_start_d")
-    y_start_d        = rospy.get_param("momdpMultiAgent_node/y_start_d")
-    expFlag        = rospy.get_param("momdpMultiAgent_node/expFlag")
+    x_start_s        = rospy.get_param("highLevelDrone/x_start_s")
+    y_start_s        = rospy.get_param("highLevelDrone/y_start_s")
+    x_start_d        = rospy.get_param("highLevelDrone/x_start_d")
+    y_start_d        = rospy.get_param("highLevelDrone/y_start_d")
+    expFlag        = rospy.get_param("highLevelDrone/expFlag")
 
     if expFlag == 1:
         from ambercortex_ros.msg import state
@@ -62,27 +62,20 @@ def main():
     msghighLevelBelief       = highLevelBelief()
 
     # Import MOMDPSegway
-    option = 1
-    if option == 1:
-        pickle_in = open(sys.path[0]+'/pyFun/multiAgent/segway_7x7ug_2.pkl',"rb")
-    else:
-        pickle_in = open(sys.path[0]+'/pyFun/multiAgent/segway_7x7_2.pkl',"rb")
+    # pickle_in = open(sys.path[0]+'/pyFun/multiAgent/segway_7x7ug_2.pkl',"rb")
+    pickle_in = open(sys.path[0]+'/pyFun/multiAgent/segway_7x7_2.pkl',"rb")
     momdpSegway     = pickle.load(pickle_in)
     momdpSegway.printLevel = 0
-    if option == 1:
-        pickle_in  = open(sys.path[0]+'/pyFun/multiAgent/drone_7x7ug_d_2.pkl',"rb")
-    else:
-        pickle_in  = open(sys.path[0]+'/pyFun/multiAgent/drone_7x7_d_2.pkl',"rb")
+    # pickle_in  = open(sys.path[0]+'/pyFun/multiAgent/drone_7x7ug_d_2.pkl',"rb")
+    pickle_in  = open(sys.path[0]+'/pyFun/multiAgent/drone_7x7_d_2.pkl',"rb")
     momdpDrone = pickle.load(pickle_in)
     momdpDrone.printLevel = 0
 
     # Init Environment
-    if option == 1:
-        loc        = (0, 0, 0, 1)
-        initBelief = [0.3, 0.9, 0.85, 0.05]
-    else:
-        loc        = (0, 0)
-        initBelief = [0.1, 0.9]
+    # loc        = (0, 0, 0, 1)
+    # initBelief = [0.3, 0.9, 0.85, 0.05]
+    loc        = (0, 0)
+    initBelief = [0, 0]
     ts          = 0
     verbose    = 0
     at = []
@@ -102,7 +95,7 @@ def main():
     initFlag = 0
     decisionMaker = True
     deploySegway  = False
-    deployDrone   = False
+    deployDrone   = True
     goalUpdate    = False
     momdp_initrialize = False
     print('=================== Readdy to start')
@@ -118,42 +111,14 @@ def main():
                 print("Segway state initialized at: ", segwayAgent.xt)
                 droneAgent.initState([xDroneCurr[0],xDroneCurr[1]])
                 print("Drone state initialized at: ", droneAgent.xt)
+                droneAgent.Update(forecast=False)
+                markerArray, obstBelief = updateObstacles(markerArray, segwayAgent.momdp, droneAgent.bt[-2])
+                print(droneAgent.goalSetAndStateMsg.x, droneAgent.goalSetAndStateMsg.y)
 
             pSuccess = np.max(np.dot(momdpSegway.J[0, segwayAgent.xt[0]].T, bt[-1])) # This is the probability of success
-            # High-level decision maker
-            if (decisionMaker == True):
-                if (pSuccess == 1):
-                    deploySegway  = False
-                    deployDrone   = False
-                elif (pSuccess > 0.8):
-                    goalUpdate = True
-                    deploySegway = True
-                    segwayAgent.Update(forecast=False)
-                    markerArray, obstBelief = updateObstacles(markerArray, segwayAgent.momdp, segwayAgent.bt[-2])
-                else:
-                    goalUpdate = True
-                    deployDrone = True
-                    droneAgent.Update(forecast=False)
-                    markerArray, obstBelief = updateObstacles(markerArray, segwayAgent.momdp, droneAgent.bt[-2])
-                    print(droneAgent.goalSetAndStateMsg.x, droneAgent.goalSetAndStateMsg.y)
 
-                decisionMaker = False
-                publisher.publish(markerArray)
-
-            # Check if goal reached or reached the goal cell
-            if (deploySegway==True) and segwayAgent.checkGoalReached(xCurr):
-                print("Segway State: ", segwayAgent.xt[-1])
-                goalUpdate = True
-                segwayAgent.Update(forecast=False)
-                # Update \alpha for obstacles: set \alpha = 1-prob beeing free
-                markerArray, obstBelief = updateObstacles(markerArray, segwayAgent.momdp, segwayAgent.bt[-2])
-                publisher.publish(markerArray)
-                if (segwayAgent.xt[-1] == momdpSegway.goal[0]) or ( segwayAgent.t + 3.0 >= momdpSegway.V.shape[0] ):
-                    deploySegway = False
-                    decisionMaker = True
-                    bt.append(segwayAgent.bt[-1])
-
-            elif (deployDrone==True) and droneAgent.checkGoalReached(xDroneCurr):
+            if droneAgent.checkGoalReached(xDroneCurr) and deployDrone == True:
+                # High-level decision maker
                 print("Drone State: ", droneAgent.xt[-1])
                 goalUpdate = True
                 droneAgent.Update(forecast=False)
@@ -166,20 +131,6 @@ def main():
                     bt.append(droneAgent.bt[-1])
 
             if goalUpdate == True:
-                goalUpdate = False
-                msghighLevelBelief.probMiss = pSuccess
-                for i in range(0, bt[-2].shape[0]):
-                    msghighLevelBelief.bt[i] = bt[-2][i]
-                for i in range(0, len(obstBelief)):
-                    msghighLevelBelief.prob[i] = obstBelief[i]
-
-                msghighLevelBelief.targetPosSegway[0] = segwayAgent.goalSetAndStateMsg.x
-                msghighLevelBelief.targetPosSegway[1] = segwayAgent.goalSetAndStateMsg.y
-
-                msghighLevelBelief.targetPosDrone[0]  = droneAgent.goalSetAndStateMsg.x
-                msghighLevelBelief.targetPosDrone[1]  = droneAgent.goalSetAndStateMsg.y
-                print("Save: ", droneAgent.goalSetAndStateMsg.x, droneAgent.goalSetAndStateMsg.y)
-
                 publisherBelief.publish(msghighLevelBelief)
 
             rate.sleep()
