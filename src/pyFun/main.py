@@ -5,6 +5,7 @@ import numpy as np
 import pickle
 from utils import *
 from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
+import os
 
 
 def main():
@@ -34,11 +35,13 @@ def evaluateSinglePolicy(load, digitsResults, printLevel, discOpt):
 	# numObst = 2
 	# gridWorld = '5x5ug'
 	# numObst = 3
-	gridWorld = '5x5'
-	numObst = 3
-	policy = 'TOQ'
+	# gridWorld = '5x5'
+	# numObst = 3
+	gridWorld = '8x8ug'
+	numObst = 2
+	policy = 'Q'
 
-	momdp   = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = False)
+	momdp   = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = True)
 
 	# # Evaluate expected cost and probability of failure
 	# results = runAllSim(momdp, gridWorld, numObst, policy, printLevel, digitsResults) 
@@ -71,31 +74,35 @@ def evaluateAllPolicies(load, digitsResults, printLevel, discOpt, gridWorldList,
 		fileToWrite.writelines(resultsList[i][1]+'\n') 
 	fileToWrite.close() #to change file access modes 
 
-def getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = False):
+def getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = False, valFunFlag = True):
 	totTimeSteps, _, _ = loadParameters(gridWorld, numObst, unGoal)
 
 	if unGoal == False:
-		fileName = sys.path[0]+'/'+policy+'_'+str(discOpt)+'/'+'MOMDP_obj_'+gridWorld+'_'+str(numObst)+'.pkl'
+		directory = 'data/'+policy+'_'+str(discOpt)+'/'
+		fileName  = 'MOMDP_obj_'+gridWorld+'_'+str(numObst)+'.pkl'
 	else:
-		fileName = sys.path[0]+'/'+policy+'ug_'+str(discOpt)+'/'+'MOMDP_obj_'+gridWorld+'_'+str(numObst)+'.pkl'
+		directory = 'data/'+policy+'ug_'+str(discOpt)+'/'
+		fileName  = 'MOMDP_obj_'+gridWorld+'_'+str(numObst)+'.pkl'
 
+	if not os.path.exists(directory):
+	    os.makedirs(directory)
 	
 	if load <= 0: # If load <= 0 compute the policy and store it if load == 0
 		gridVar = loadGrid(gridWorld+'_'+str(numObst))
 		if policy == 'TOQ':
 			# momdp = MOMDP_TOQ_notVectorized(gridVar, totTimeSteps,printLevel, policy, discOpt)
-			momdp = MOMDP_TOQ(gridVar, totTimeSteps,printLevel, policy, discOpt, unGoal)
+			momdp = MOMDP_TOQ(gridVar, totTimeSteps,printLevel, policy, discOpt, unGoal, valFunFlag)
 		elif policy == 'Q':
-			momdp = MOMDP_Q(gridVar, totTimeSteps,printLevel, policy, discOpt)
+			momdp = MOMDP_Q(gridVar, totTimeSteps,printLevel, policy, discOpt, unGoal, valFunFlag)
 		elif policy == 'TO':
-			momdp = MOMDP_TO(gridVar, totTimeSteps,printLevel, policy, discOpt)
+			momdp = MOMDP_TO(gridVar, totTimeSteps,printLevel, policy, discOpt, unGoal, valFunFlag)
 
 		if load == 0:
-			pickle_out = open(fileName,"wb")
+			pickle_out = open(directory+fileName,"wb")
 			pickle.dump(momdp, pickle_out)
 			pickle_out.close()
 	else: 
-		pickle_in = open(fileName,"rb")
+		pickle_in = open(directory+fileName,"rb")
 		momdp = pickle.load(pickle_in)
 	
 	return momdp

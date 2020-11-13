@@ -13,9 +13,8 @@ from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 matplotlib.rcParams.update({'font.size': 22})
 
 # bag = rosbag.Bag('/home/drew/rosbag/_2020-10-09-17-21-59.bag')
-bag = rosbag.Bag('/home/ugo/rosbag/_2020-11-13-14-45-28.bag')
-
-option = 1
+bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-14-00-29-33.bag')
+option = 0
 
 if option == 1:
 	fileName = sys.path[0]+'/../src/pyFun/multiAgent/segway_7x7_2.pkl'
@@ -89,7 +88,8 @@ def saveGit(name, xaxis, variableAnimate, color, labels, yLimits):
     dataPoints = variableAnimate[0].shape[0]
 
     anim = FuncAnimation(fig, update, frames=np.arange(0, dataPoints+1), interval=100)
-    anim.save(name+'.gif', dpi=80, writer='imagemagick')
+    # anim.save(name+'.gif', dpi=80, writer='imagemagick')
+    anim.save(name+'.gif', dpi=80)
 
 def main():
 
@@ -137,26 +137,6 @@ def main():
 	## =======================================================
 	## Read and plot INPUT
 	## =======================================================
-	inputVector = []
-	u1=[]
-	u2=[]
-	time_u = []
-	for topic, msg, t in bag.read_messages(topics=['/segway_sim/mpc_input']):
-		inputVector.append(msg.inputVec)
-		u1.append(msg.inputVec[0])
-		u2.append(msg.inputVec[1])
-		time_u.append((len(time_u))*dt_mpc)
-
-	u1_d=[]
-	u2_d=[]
-	time_u_d = []
-	for topic, msg, t in bag.read_messages(topics=['/uav_sim_ros/uav_cmd_des']):
-		u1_d.append(msg.vDes[0])
-		u2_d.append(msg.vDes[1])
-		time_u_d.append((len(time_u_d))*dt_mpc)
-
-
-	inputOffSet = len(time_u_d)-len(time_u)
 	# plt.figure()
 	# plt.plot(time_u, u1, label='u1')
 	# plt.plot(time_u, u2, label='u2')
@@ -168,13 +148,13 @@ def main():
 	## =======================================================
 	state_s = []
 	time_state_s = []
-	for topic, msg, t in bag.read_messages(topics=['/segway_sim/state_true']):
-		state_t = [msg.x, msg.y, msg.theta, msg.v, msg.thetaDot, msg.psi, msg.psiDot]
-		# state_t = [msg.state[0], msg.state[1], msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
+	for topic, msg, t in bag.read_messages(topics=['/cyberpod/state']):
+		# state_t = [msg.x, msg.y, msg.theta, msg.v, msg.thetaDot, msg.psi, msg.psiDot]
+		state_t = [msg.state[0], msg.state[1], msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
 		state_s.append(state_t)
 		time_state_s.append((len(time_state_s))*0.001)
 
-	state_s_array = np.array(state_s)
+	state_array = np.array(state_s)
 	
 	# plt.figure()
 	# plt.subplot(711)
@@ -195,7 +175,7 @@ def main():
 
 	state_d = []
 	time_state_d = []
-	for topic, msg, t in bag.read_messages(topics=['/uav_sim_ros/state']):
+	for topic, msg, t in bag.read_messages(topics=['/t2/odom']):
 		state_t = [msg.x, msg.y, msg.vbx, msg.vby]
 		# state_t = [msg.state[0], msg.state[1], msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
 		state_d.append(state_t)
@@ -295,72 +275,6 @@ def main():
 	plt.legend(loc=1, fontsize=22, framealpha=1)
 
 
-	fig = plt.figure()
-	# ax = fig.add_subplot(2, 1, 0)
-	ax = plt.subplot2grid((20, 1), (0, 0), rowspan=16)
-	plt.plot(state_s_array[:,0], state_s_array[:,1], '-k',label='Segway')
-	plt.plot(state_d_array[:,0], state_d_array[:,1], '-r',label='Drone')
-	for i in range(0,row_grid+1):
-		plt.plot([i,i], [0,col_grid], '-k')
-	for i in range(0, col_grid+1):
-		plt.plot([0,row_grid], [i,i], '-k')
-	plt.plot(xy_seg_array[:,0], xy_seg_array[:,1], 'sk',label='Segway goal positions')
-	plt.plot(xy_drn_array[:,0], xy_drn_array[:,1], 'sr',label='Drone goal positions')
-	
-	# Draw regions
-	# Add goal
-	goalColor  =(0.0, 0.7, 0.0)
-	if momdp.unGoal == False:
-		addStaticComponents(momdp, ax, 1, goalColor)
-	else:
-		totProb = [0.3, 0.3]
-		goalPatchList = addDynamicComponent(momdp, ax, momdp.col_goal, momdp.row_goal, goalColor, totProb)
-	
-	# Add known static obstacles
-	obsColor  =(1.0, 1.0, 0.0)
-	addStaticComponents(momdp, ax, -1, obsColor)
-	# Add uncertain regions
-	obsColor  =(0.0, 0.1, 0.8)
-	totProb = [0.2, 0.2]
-	obstPatchList = addDynamicComponent(momdp, ax, momdp.col_obs, momdp.row_obs, obsColor, totProb)
-	# ax.square()
-	ax.set(aspect='equal')
-	plt.xlabel('x [m]', fontsize=22)
-	plt.ylabel('y [m]', fontsize=22)
-	plt.legend(loc=1, fontsize=22, framealpha=1)
-	
-
-	pdb.set_trace()
-	pCorr = np.append(np.append(probMiss[0:15],probMiss[15:18]),probMiss[15:])
-	
-	p1 = np.append(np.append(probObstArray[0:15,0],probObstArray[15:18,0]),probObstArray[15:,0])
-	p2 = np.append(np.append(probObstArray[0:15,1],probObstArray[15:18,1]),probObstArray[15:,1])
-	p3 = np.append(np.append(probObstArray[0:15,2],probObstArray[15:18,2]),probObstArray[15:,2])
-	p4 = np.append(np.append(probObstArray[0:15,3],probObstArray[15:18,3]),probObstArray[15:,3])
-	tCorr = np.arange(pCorr.shape[0])
-
-	# ax = fig.add_subplot(4, 1, 4)
-	ax = plt.subplot2grid((20, 1), (17, 0), rowspan=3)
-	if option == 1:
-		plt.plot(time_belief, probMiss,'-k', label='Mission success')
-		plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
-		plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
-	else:
-		# plt.plot(time_belief, probMiss,'-k', label='Mission success')
-		# plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
-		# plt.plot(time_belief, probObstArray[:,1],'--sb', label='R2')
-		# plt.plot(time_belief, probObstArray[:,2],'-og', label='G1')
-		# plt.plot(time_belief, probObstArray[:,3],'--sg', label='G2')
-		plt.plot(tCorr, pCorr,'-k', label='Mission success')
-		plt.plot(tCorr, p1,'-ob', label='R1')
-		plt.plot(tCorr, p2,'--sb', label='R2')
-		plt.plot(tCorr, p3,'-og', label='G1')
-		plt.plot(tCorr, p4,'--sg', label='G2')
-
-		plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=5, fontsize=18, framealpha=1)	
-		plt.ylabel('Probability', fontsize=22)
-		plt.ylim(-0.1,1.6)
-	plt.xlabel('high-level time k')
 
 	fig = plt.figure()
 	# ax = fig.add_subplot(2, 1, 0)
@@ -396,17 +310,6 @@ def main():
 	plt.ylabel('y [m]', fontsize=22)
 	plt.legend(loc=1, fontsize=22, framealpha=1)
 	
-
-	pCorr = np.append(np.append(probMiss[0:15],probMiss[15:18]),probMiss[15:])
-	
-	p1 = np.append(np.append(probObstArray[0:15,0],probObstArray[15:18,0]),probObstArray[15:,0])
-	p2 = np.append(np.append(probObstArray[0:15,1],probObstArray[15:18,1]),probObstArray[15:,1])
-	p3 = np.append(np.append(probObstArray[0:15,2],probObstArray[15:18,2]),probObstArray[15:,2])
-	p4 = np.append(np.append(probObstArray[0:15,3],probObstArray[15:18,3]),probObstArray[15:,3])
-	tCorr = np.arange(pCorr.shape[0])
-
-	pdb.set_trace()
-
 	# ax = fig.add_subplot(4, 1, 4)
 	ax = plt.subplot2grid((20, 1), (17, 0), rowspan=3)
 	if option == 1:
@@ -419,11 +322,11 @@ def main():
 		plt.plot(time_belief, probObstArray[:,1],'--sb', label='R2')
 		plt.plot(time_belief, probObstArray[:,2],'-og', label='G1')
 		plt.plot(time_belief, probObstArray[:,3],'--sg', label='G2')
-
 		plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=5, fontsize=18, framealpha=1)	
 		plt.ylabel('Probability', fontsize=22)
 		plt.ylim(-0.1,1.6)
 	plt.xlabel('high-level time k')
+
 	
 	# Continous time figure
 	fig = plt.figure()

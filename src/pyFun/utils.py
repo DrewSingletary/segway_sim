@@ -92,8 +92,10 @@ def addStaticComponents(momdp, ax, typeComponent, colorComponent):
 		ax.add_patch( Rectangle((x, y), 1, 1, fc =colorComponent, ec =colorComponent) ) 
 
 def loadParameters(gridWorld, numObst, unGoal):
-	if gridWorld == '15x15':
-		totTimeSteps = 40
+	if gridWorld == '15x15' or gridWorld == '10x10ug':
+		totTimeSteps = 60
+	elif gridWorld == '8x8ug':
+		totTimeSteps = 50
 	elif gridWorld == '7x7_d' or gridWorld == '7x7ug_d':
 		totTimeSteps = 20
 	else:
@@ -117,9 +119,9 @@ def loadParameters(gridWorld, numObst, unGoal):
 	else:
 		if numObst == 2:
 			loc        = (0,0,0,1)
-			initBelief = [0.9, 0.3, 0.3,0.4]
+			initBelief = [0.8, 0.3, 0.6,0.4]
 		elif numObst == 3:
-			loc        = (1,1,1,0,1)
+			loc        = (1,0,0,0,1)
 			initBelief = [0.9, 0.3, 0.4, 0.1, 0.8]
 		elif numObs == 4:
 			loc        = (1,1,1,0,1)
@@ -133,15 +135,15 @@ def loadParameters(gridWorld, numObst, unGoal):
 
 def eveluateMOMDP(momdp, loc, initBelief, xt, bt, printLevel):
 	
-	V_t0, Vrealized, J_t0, failure, tRun, xt, bt = simulateMOMDP(momdp, loc, initBelief, xt, bt, printLevel, 2) # Uncomment to get exact measurement
+	V_t0, Vrealized, J_t0, failure, tRun, xt, bt = simulateMOMDP(momdp, loc, initBelief, xt, bt, printLevel, 3) # Uncomment to get exact measurement
 	# V_t0, Vrealized, J_t0, failure, tRun, xt, bt = simulateMOMDP(momdp, loc, initBelief, xt, bt, 0, 3)
-	_, _, _, _, _, xt_1, _ = simulateMOMDP(momdp, loc, initBelief, xt, bt, 0, 0)
-	_, _, _, _, _, xt_2, _ = simulateMOMDP(momdp, loc, initBelief, xt, bt, 0, 1)
-	if xt_1 == xt and xt_2 == xt:
-		if momdp.printLevel >= 1: print('Expected value computed correctly')
-	else:
-		print('Need to consider all possible combination of possible observations')
-		pdb.set_trace()
+	# _, _, _, _, _, xt_1, _ = simulateMOMDP(momdp, loc, initBelief, xt, bt, 0, 0)
+	# _, _, _, _, _, xt_2, _ = simulateMOMDP(momdp, loc, initBelief, xt, bt, 0, 1)
+	# if xt_1 == xt and xt_2 == xt:
+	# 	if momdp.printLevel >= 1: print('Expected value computed correctly')
+	# else:
+	# 	print('Need to consider all possible combination of possible observations')
+	# 	pdb.set_trace()
 
 	return V_t0, Vrealized, J_t0, failure, tRun, xt, bt
 
@@ -195,11 +197,11 @@ def loadGrid(gridVarOpt):
 	
 	print("gridVarOpt: ", gridVarOpt)
 	if (gridVarOpt == '5x5ug_2'):
-		gridVar  = np.array([[0,        0,         0,         0,         0],
-							[0,         0,   -1.0000,   -1.0000,    0.5000],
-							[0,         0,   -1.0000,    1.0000,         0],
+		gridVar  = np.array([[0,        0,         0,         0,    1.0000],
+							[0,         0,   -1.0000,    0.5000,   -1.0000],
 							[0,         0,   -1.0000,         0,         0],
-							[0,         0,    0.5000,         0,    1.0000]])
+							[0,         0,   -1.0000,   -1.0000,    0.5000],
+							[0,         0,   -1.0000,         0,    1.0000]])
 
 	elif (gridVarOpt == '5x5ug_3'):
 		gridVar  = np.array([[0,        0,         0,         0,         0],
@@ -231,6 +233,24 @@ def loadGrid(gridVarOpt):
 							[0,   -1.0000,         0,   -1.0000,         0],
 							[0,   -1.0000,   -1.0000,   -1.0000,         0],
 							[0,         0,         0,         0,         0]])
+	
+	elif (gridVarOpt == '7x7ug_d_2'):
+		gridVar =np.array([[1.0,        0,         0,    0.5000,         0,         0,         0],
+							[0,         0,         0,         0,         0,         0,         0],
+							[0,         0,         0,         0,         0,         0,         0],
+							[0,         0,         0,         0,         0,         0,    0.5000],
+							[0,         0,         0,         0,         0,         0,         0],
+							[0,         0,         0,    0.5000,         0,         0,         0],
+							[0,         0,         0,         0,         0,         0,    0.5000],]);
+	
+	elif (gridVarOpt == '7x7ug_2'):
+		gridVar =np.array([[0,         0,   -1.0000,    1.0000,         0,         0,         0],
+						   [0,         0,   -1.0000,         0,         0,         0,         0],
+						   [0,         0,   -1.0000,         0,         0,         0,         0],
+						   [0,         0,   -1.0000,         0,   -1.0000,   -1.0000,    0.5000],
+						   [0,         0,   -1.0000,         0,   -1.0000,         0,         0],
+						   [0,         0,   -1.0000,    0.5000,   -1.0000,         0,         0],
+						   [0,         0,         0,         0,   -1.0000,         0,    1.0000],]);
 
 	elif (gridVarOpt == '7x7_2'):
 		gridVar =np.array([[0,         0,   -1.0000,         0,         0,         0,         0],
@@ -312,5 +332,40 @@ def loadGrid(gridVarOpt):
 					[0,         0,         0,   -1.0000,         0,         0,         0,         0,         0,         0,         0,         0,         0,        0,         0],
 					[0,         0,         0,    0.5000,         0,         0,         0,         0,         0,         0,         0,         0,         0,        0,         0],
 					[0,         0,         0,   -1.0000,         0,         0,         0,         0,         0,         0,         0,         0,         0,        0,    1.0000]])
+	
+	elif (gridVarOpt == '10x10ug_3'):
+		gridVar =np.array([[0,         0,         0,         0,         0,         0,         0,       0,       0,       0],
+						   [0,         0,   -1.0000,   -1.0000,   -1.0000,   -1.0000,   -1.0000, -1.0000, -1.0000,  0.5000],
+						   [0,         0,   -1.0000,         0,    1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,   -1.0000,         0,         0,         0,         0,       0,       0,       0],
+						   [0,         0,   -1.0000,         0,   -1.0000,   -1.0000,    0.5000, -1.0000, -1.0000, -1.0000],
+						   [0,         0,   -1.0000,         0,   -1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,   -1.0000,    0.5000,   -1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,         0,         0,   -1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,         0,         0,   -1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,         0,         0,   -1.0000,         0,         0,       0,       0,   1.000]]);
 
+	elif (gridVarOpt == '10x10ug_2'):
+		gridVar =np.array([[0,         0,         0,         0,         0,         0,         0,       0,       0,       0],
+						   [0,         0,   -1.0000,   -1.0000,   -1.0000,   -1.0000,   -1.0000, -1.0000, -1.0000,  0.5000],
+						   [0,         0,   -1.0000,         0,    1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,   -1.0000,         0,         0,         0,         0,       0,       0,       0],
+						   [0,         0,   -1.0000,         0,   -1.0000,   -1.0000,    0.0000, -1.0000, -1.0000, -1.0000],
+						   [0,         0,   -1.0000,         0,   -1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,   -1.0000,    0.5000,   -1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,         0,         0,   -1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,         0,         0,   -1.0000,         0,         0,       0,       0,       0],
+						   [0,         0,         0,         0,   -1.0000,         0,         0,       0,       0,   1.000]]);
+	
+	elif (gridVarOpt == '8x8ug_2'):
+		gridVar =np.array([[      0,         0,         0,         0,         0,       0,       0,       0],
+						   [-1.0000,         0,         0,         0,         0,       0,       0,       0],
+						   [      0,         0,   -1.0000,   -1.0000,   -1.0000, -1.0000, -1.0000,  0.5000],
+						   [      0,   -1.0000,   -1.0000,         0,         0, -1.0000,       0,       0],
+						   [      0,         0,   -1.0000,         0,    1.0000, -1.0000,       0,       0],
+						   [-1.0000,    0.5000,   -1.0000,         0,         0, -1.0000,       0,       0],
+						   [      0,         0,   -1.0000,         0,   -1.0000, -1.0000,       0,       0],
+						   [ 1.0000,         0,   -1.0000,         0,         0,       0,       0,       0]]);
+	
+	print(gridVarOpt)
 	return gridVar

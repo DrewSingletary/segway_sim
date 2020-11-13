@@ -1,12 +1,50 @@
 import rosbag
+import sys
+import pickle
 import pdb
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Rectangle 
 from matplotlib.animation import FuncAnimation
+import scipy.io as sio
+sys.path.append('../src/pyFun')
+from tempfile import TemporaryFile
 
-bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-30-21-42-45.bag')
+from nav_msgs.msg import Odometry as stateTB
+from geometry_msgs.msg import Twist
+from main import getMOMDP
+
+from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
+matplotlib.rcParams.update({'font.size': 22})
+
+bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
+
+bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
 
 dt_mpc = 0.05
+col_grid = 8
+row_grid = 8
+x_start_s=0.5
+x_start_tb=0.5
+y_start_s=4.5
+y_start_tb=3.5
+T_end = 120
+
+opt = 1
+if opt == 1:
+	fileName = sys.path[0]+'/../src/pyFun/data/Qug_1/MOMDP_obj_8x8ug_2.pkl'
+	# fileName = sys.path[0]+'/../src/pyFun/TOQug_1/MOMDP_obj_10x10ug_2.pkl'
+
+	pickle_in = open(fileName,"rb")
+	momdp = pickle.load(pickle_in)
+else:
+    gridWorld = '10x10ug'
+    numObst = 3
+    policy = 'TOQ'
+    printLevel = 0
+    discOpt = 1
+    momdp   = getMOMDP(gridWorld, numObst, policy, printLevel, -1, discOpt, unGoal = True, valFunFlag = False)
 
 def getPred(optSol):
 	xPred = []
@@ -33,8 +71,44 @@ def getPred(optSol):
 
 	return xPred, yPred, thetaPred, vPred, thetaDotPred, psiPred, psiDotPred, u1Pred, u2Pred
 
+def addDynamicComponent(momdp, ax, col, row, colorComponent, totProb):
+	obstPatchList = []
+	for i in range(0, len(row) ):
+		x = col[i]
+		y = momdp.gridVar.shape[0] - row[i] - 1
+		patch = Rectangle((x, y), 1, 1, fc =colorComponent, ec =colorComponent)
+		patch.set_alpha(1-totProb[i])
+		obstPatchList.append( patch )
+		ax.add_patch(obstPatchList[-1])
+	return obstPatchList
+
+def addStaticComponents(momdp, ax, typeComponent, colorComponent):
+	idxY, idxX = np.where(momdp.gridVar == typeComponent)
+	for i in range(0, idxX.shape[0] ):
+		x = idxX[i]
+		y = momdp.gridVar.shape[0] - idxY[i] - 1
+		ax.add_patch( Rectangle((x, y), 1, 1, fc =colorComponent, ec =colorComponent) ) 
 input = raw_input("Do you want to plot mid-level data? [y/n] ")
 if input == 'y':
+	probMiss = []
+	Belief   = []
+	probObst = []
+	time_belief = []
+	xy_seg = []
+	xy_drn = []
+	for topic, msg, t in bag.read_messages(topics=['/segway_sim/highLevelBelief']):
+		probMiss.append(msg.probMiss)
+		Belief.append(msg.bt)
+		probObst.append(msg.prob)
+		time_belief.append((len(time_belief)))
+		if msg.targetPosDrone[0] > 0 and msg.targetPosDrone[1]>0:
+			xy_drn.append(msg.targetPosDrone)
+		if msg.targetPosSegway[0] > 0 and msg.targetPosSegway[1]>0:
+			xy_seg.append(msg.targetPosSegway)
+
+	xy_seg_array = np.array(xy_seg)
+	xy_drn_array = np.array(xy_drn)
+
 	## =======================================================
 	## Read and plot INPUT
 	## =======================================================
@@ -99,6 +173,7 @@ if input == 'y':
 	yGoal = []
 	xCurr = []
 	x_IC = []
+	xyContPlan = []
 	for topic, msg, t in bag.read_messages(topics=['/segway_sim/optimal_sol']):
 		optSol.append(msg.optimalSolution)
 		time_optSol.append((len(time_optSol))*dt_mpc)
@@ -109,6 +184,10 @@ if input == 'y':
 		x_IC.append(msg.x_IC)
 		xCurr.append(msg.xCurr)
 		delay_ms = msg.delay_ms
+		if msg.contPlan == 1:
+			xyContPlan.append(optSol[-1][0:2])
+
+
 
 	error = []
 	print("================== delay_ms: ", delay_ms)
@@ -173,6 +252,81 @@ if input == 'y':
 	plt.subplot(717)
 	plt.plot(time_optSol, e0_array[:,6], label='e_0')
 	plt.legend()
+
+
+	fig = plt.figure()
+	ax = plt.subplot2grid((1, 1), (0, 0))
+	plt.plot(state_array[:,0], state_array[:,1], '-k',label='Segway')
+	for i in range(0,row_grid+1):
+		plt.plot([i,i], [0,col_grid], '-k')
+	for i in range(0, col_grid+1):
+		plt.plot([0,row_grid], [i,i], '-k')
+	plt.plot(xy_seg_array[:,0], xy_seg_array[:,1], 'sk',label='mid-level goals')
+	# plt.plot(0.5, 7.5, 'sk')
+	
+	# Draw regions
+	# Add goal
+	goalColor  =(0.0, 0.7, 0.0)
+	if momdp.unGoal == False:
+		addStaticComponents(momdp, ax, 1, goalColor)
+	else:
+		totProb = [0.3, 0.3]
+		goalPatchList = addDynamicComponent(momdp, ax, momdp.col_goal, momdp.row_goal, goalColor, totProb)
+	
+	# Add known static obstacles
+	obsColor  =(0.5, 0.0, 0.0)
+	addStaticComponents(momdp, ax, -1, obsColor)
+	# Add uncertain regions
+	obsColor  =(0.5, 0.0, 0.0)
+	totProb = [0.8, 0.8, 0.8]
+	obstPatchList = addDynamicComponent(momdp, ax, momdp.col_obs, momdp.row_obs, obsColor, totProb)
+	# ax.square()
+	for i in range(0, len(xyContPlan)):
+		if i == 0: 	
+			plt.plot(xyContPlan[i][0], xyContPlan[i][1], 'ob', label='solved contingency MPC')
+		else:
+			plt.plot(xyContPlan[i][0], xyContPlan[i][1], 'ob')
+
+	ax.set(aspect='equal')
+	plt.xlabel('x [m]', fontsize=22)
+	plt.ylabel('y [m]', fontsize=22)
+	plt.legend(loc=1, fontsize=22, framealpha=1)
+
+
+	probMiss = []
+	Belief   = []
+	probObst = []
+	time_belief = []
+	xy_seg = []
+	xy_drn = []
+	for topic, msg, t in bag.read_messages(topics=['/segway_sim/highLevelBelief']):
+		probMiss.append(msg.probMiss)
+		Belief.append(msg.bt)
+		probObst.append(msg.prob)
+		time_belief.append((len(time_belief)))
+		if msg.targetPosDrone[0] > 0 and msg.targetPosDrone[1]>0:
+			xy_drn.append(msg.targetPosDrone)
+		if msg.targetPosSegway[0] > 0 and msg.targetPosSegway[1]>0:
+			xy_seg.append(msg.targetPosSegway)
+
+	xy_seg_array = np.array(xy_seg)
+	xy_drn_array = np.array(xy_drn)
+
+	BeliefArray = np.array(Belief)
+	probObstArray = 1-np.array(probObst)
+	plt.figure(figsize=(12,10))
+	plt.plot(time_belief, probObstArray[:,0],'-o', color='brown', label='R1')
+	plt.plot(time_belief, probObstArray[:,1],'--s', color='brown', label='R2')
+	# plt.plot(time_belief, probObstArray[:,2],'-.*', color='brown', label='R3')
+	# plt.plot(time_belief, probObstArray[:,3],'--sg', label='G1')
+	# plt.plot(time_belief, probObstArray[:,4],'--sg', label='G2')
+	plt.plot(time_belief, probObstArray[:,2],'--sg', label='G1')
+	plt.plot(time_belief, probObstArray[:,3],'--sg', label='G2')
+	plt.plot(time_belief, probMiss,'-k', label='Mission success')
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
+	plt.xlabel("High-level time k", fontsize=22)
+	plt.ylabel("Probability", fontsize=22)
+	plt.ylim(-0.01,1.1)
 	plt.show()
 
 	input = raw_input("Do you want to plot an animation for the predicted trajectory? [y/n] ")
@@ -266,6 +420,7 @@ if input == 'y':
 	h = []
 	time_lowLevel = []
 	error_lowLevel = []
+	QPtime = []
 	dt_lowlevel = 0.001
 	for topic, msg, t in bag.read_messages(topics=['/segway_sim/lowLevelLog']):
 		X.append(msg.X)
@@ -278,14 +433,32 @@ if input == 'y':
 		uTot.append(msg.uTot)
 		V.append(msg.V)
 		h.append(msg.h)
+		QPtime.append(msg.QPtime)
 
-	plt.figure()
-	plt.plot(time_lowLevel, h, '-o', label='h')
-	plt.ylabel('h')
-	plt.xlabel('Time')
-	plt.ylim(-1.1, 1)
+	time_lowLevel_noBarrier = []
+	h_noBarrier = []
+	for topic, msg, t in bagNoBarrier.read_messages(topics=['/segway_sim/lowLevelLog']):
+			time_lowLevel_noBarrier.append((len(time_lowLevel_noBarrier))*dt_lowlevel)
+			h_noBarrier.append(msg.h)
+			
+	plt.figure(figsize=(12,10))
+	plt.plot(time_lowLevel_noBarrier, h_noBarrier, '-r', label=' mid-layer + MPC')
+	plt.plot(time_lowLevel, h, '-b', label='proposed strategy')
+	plt.plot([-10, 100], [0,0], '-k')
+	plt.ylabel('h(e)')
+	plt.xlabel('Time [s]')
+	plt.legend(loc=4)
+	# plt.ylim(-1.1, 1)
 
-	plt.figure()
+	plt.figure(figsize=(12,10))
+	plt.plot(time_optSol[1:], solverTime[1:], '-k', label='mid-level')
+	plt.plot(time_lowLevel[1:], QPtime[1:], '-b', label='low-level')
+	plt.ylabel('Solver time [s]')
+	plt.xlabel('Time [s]')
+	plt.legend()
+	# plt.ylim(-1.1, 1)
+
+	plt.figure(figsize=(12,10))
 	plt.subplot(211)
 	plt.plot(time_lowLevel, h, '-o', label='h')
 	plt.subplot(212)
@@ -295,17 +468,38 @@ if input == 'y':
 	uCBF_array = np.array(uCBF);
 	uTot_array = np.array(uTot);
 
-	plt.figure()
+	plt.figure(figsize=(12,10))
 	plt.subplot(211)
-	plt.plot(time_lowLevel, uMPC_array[:, 0], '-o', label='MPC')
-	plt.plot(time_lowLevel, uCBF_array[:, 0], '-o', label='CBF')
-	plt.plot(time_lowLevel, uTot_array[:, 0], '-o', label='tot')
+	plt.plot(time_lowLevel, uMPC_array[:, 0], '-r', label='mid-level input')
+	plt.plot(time_lowLevel, uCBF_array[:, 0], '-k', label='low-level input')
+	plt.plot(time_lowLevel, uTot_array[:, 0], '-b', label='total input')
+	plt.ylabel('Input [N/m]')
 	plt.subplot(212)
-	plt.plot(time_lowLevel, uMPC_array[:, 1], '-o', label='MPC')
-	plt.plot(time_lowLevel, uCBF_array[:, 1], '-o', label='CBF')
-	plt.plot(time_lowLevel, uTot_array[:, 1], '-o', label='tot')
-	plt.ylabel('input')
-	plt.legend()
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
+	plt.plot(time_lowLevel, uMPC_array[:, 1], '-r', label='mid-level input')
+	plt.plot(time_lowLevel, uCBF_array[:, 1], '-k', label='low-level input')
+	plt.plot(time_lowLevel, uTot_array[:, 1], '-b', label='total input')
+	plt.ylabel('Input [N/m]')
+	plt.xlabel('Time [s]')
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
+
+
+	plt.figure(figsize=(12,10))
+	plt.subplot(211)
+	plt.plot(time_lowLevel, uMPC_array[:, 0], '-r', label='mid-level input')
+	plt.plot(time_lowLevel, uCBF_array[:, 0], '-k', label='low-level input')
+	plt.plot(time_lowLevel, uTot_array[:, 0], '-b', label='total input')
+	plt.ylabel('Input [N/m]')
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
+	plt.xlim(14.5, 15.5)
+	plt.subplot(212)
+	plt.plot(time_lowLevel, uMPC_array[:, 1], '-r', label='mid-level input')
+	plt.plot(time_lowLevel, uCBF_array[:, 1], '-k', label='low-level input')
+	plt.plot(time_lowLevel, uTot_array[:, 1], '-b', label='total input')
+	plt.ylabel('Input [N/m]')
+	plt.xlabel('Time [s]')
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
+	plt.xlim(14.5, 15.5)
 
 	plt.figure()
 	plt.plot(time_lowLevel, uMPC_array[:, 0], '-o', label='MPC')

@@ -62,7 +62,7 @@ def main():
     msghighLevelBelief       = highLevelBelief()
 
     # Import MOMDPSegway
-    option = 1
+    option = 2
     if option == 1:
         pickle_in = open(sys.path[0]+'/pyFun/multiAgent/segway_7x7ug_2.pkl',"rb")
     else:
@@ -80,6 +80,7 @@ def main():
     if option == 1:
         loc        = (0, 0, 0, 1)
         initBelief = [0.3, 0.9, 0.85, 0.05]
+        initBelief = [0.2, 0.2, 0.5, 0.5]
     else:
         loc        = (0, 0)
         initBelief = [0.1, 0.9]
@@ -128,23 +129,23 @@ def main():
                 elif (pSuccess > 0.8):
                     goalUpdate = True
                     deploySegway = True
-                    segwayAgent.Update(forecast=False)
+                    segwayAgent.Update(forecast=True)
                     markerArray, obstBelief = updateObstacles(markerArray, segwayAgent.momdp, segwayAgent.bt[-2])
                 else:
                     goalUpdate = True
                     deployDrone = True
-                    droneAgent.Update(forecast=False)
+                    droneAgent.Update(forecast=True)
                     markerArray, obstBelief = updateObstacles(markerArray, segwayAgent.momdp, droneAgent.bt[-2])
                     print(droneAgent.goalSetAndStateMsg.x, droneAgent.goalSetAndStateMsg.y)
 
                 decisionMaker = False
                 publisher.publish(markerArray)
-
+            
             # Check if goal reached or reached the goal cell
             if (deploySegway==True) and segwayAgent.checkGoalReached(xCurr):
                 print("Segway State: ", segwayAgent.xt[-1])
                 goalUpdate = True
-                segwayAgent.Update(forecast=False)
+                segwayAgent.Update(forecast=True)
                 # Update \alpha for obstacles: set \alpha = 1-prob beeing free
                 markerArray, obstBelief = updateObstacles(markerArray, segwayAgent.momdp, segwayAgent.bt[-2])
                 publisher.publish(markerArray)
@@ -156,7 +157,7 @@ def main():
             elif (deployDrone==True) and droneAgent.checkGoalReached(xDroneCurr):
                 print("Drone State: ", droneAgent.xt[-1])
                 goalUpdate = True
-                droneAgent.Update(forecast=False)
+                droneAgent.Update(forecast=True)
                 # Update \alpha for obstacles: set \alpha = 1-prob beeing free
                 markerArray, obstBelief = updateObstacles(markerArray, segwayAgent.momdp, droneAgent.bt[-2])
                 publisher.publish(markerArray)

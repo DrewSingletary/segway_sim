@@ -198,21 +198,23 @@ int main (int argc, char *argv[])
 		ros::spinOnce();
 
 		// store ros time
-		ros_time_init = ros::Time::now();
+		
 		if ((flagInputPub_ == 1) && ( flagNominalStatePub_ == 1 )){ 
 			// apply input (note that at time t we compute the input for time t+1)
 			
+			ros_time_init = ros::Time::now();
 			cbf->setIC(X, Xn);
 			cbf->setMatrices(Alinear, Blinear, Clinear);
-
 			// Solve CBF-CLF QP
 			uMPC[0] = inputMpc_.inputVec[0]; //inputMpcBuffer1_[int((delay_ms_/1000)/dt_)- 1];
 			uMPC[1] = inputMpc_.inputVec[1]; //inputMpcBuffer2_[int((delay_ms_/1000)/dt_)- 1];
  			cbf->evaluateCBFqpConstraintMatrices(uMPC, 0);
-	    cbf->solveQP(0);
+	    	cbf->solveQP(0);
 
 			inputTot_.inputVec[0] = lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0];
 			inputTot_.inputVec[1] = lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1];
+			
+			lowLevelLog_.QPtime = ros_time_init.toSec()-ros_time_end.toSec();
 
 			pub_inputAct_.publish(inputTot_);
 
@@ -251,7 +253,7 @@ int main (int argc, char *argv[])
 			
 			// read ros time and print solver time
 			ros_time_end = ros::Time::now();
-			if (printLevel >= 1) cout << "Node Time: " << ros_time_init.toSec()-ros_time_end.toSec() << std::endl;
+			// if (printLevel >= 1) cout << "Node Time: " << ros_time_init.toSec()-ros_time_end.toSec() << std::endl;
 		}
 
 		//Wait for tick

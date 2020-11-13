@@ -9,26 +9,36 @@ from matplotlib.patches import Rectangle
 from matplotlib.animation import FuncAnimation
 import scipy.io as sio
 sys.path.append('../src/pyFun')
+from tempfile import TemporaryFile
+
+from nav_msgs.msg import Odometry as stateTB
+from geometry_msgs.msg import Twist
+
 from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 matplotlib.rcParams.update({'font.size': 22})
 
-# bag = rosbag.Bag('/home/drew/rosbag/_2020-10-09-17-21-59.bag')
-bag = rosbag.Bag('/home/ugo/rosbag/_2020-11-13-14-45-28.bag')
-
-option = 1
+bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-14-00-25-36.bag')
+# bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-10-12-07-32.bag')
+option = 0
 
 if option == 1:
 	fileName = sys.path[0]+'/../src/pyFun/multiAgent/segway_7x7_2.pkl'
+    # pickle_in = open(sys.path[0]+'/pyFun/multiAgent/segway_7x7_2.pkl',"rb")
 else:
 	fileName = sys.path[0]+'/../src/pyFun/multiAgent/segway_7x7ug_2.pkl'
+	fileName = sys.path[0]+'/../src/pyFun/multiAgent/segway_5x5Newug_2.pkl'
 
 pickle_in = open(fileName,"rb")
 momdp = pickle.load(pickle_in)
 
 dt_mpc = 0.05
-col_grid = 7
-row_grid = 7
-
+col_grid = 5
+row_grid = 5
+x_start_s=0.5
+x_start_tb=0.5
+y_start_s=4.5
+y_start_tb=3.5
+T_end = 120
 def addDynamicComponent(momdp, ax, col, row, colorComponent, totProb):
 	obstPatchList = []
 	for i in range(0, len(row) ):
@@ -73,15 +83,16 @@ def getPred(optSol):
 	return xPred, yPred, thetaPred, vPred, thetaDotPred, psiPred, psiDotPred, u1Pred, u2Pred
 
 def saveGit(name, xaxis, variableAnimate, color, labels, yLimits):
-    fig = plt.figure()
-    fig.set_tight_layout(True)
+    fig = plt.figure(figsize=(15,10))
     ax = plt.axes()
     lineList = []
     for i in range(0, len(variableAnimate)):
     	line, = ax.plot([], [], color[i], label=labels[i],zorder=1)
     	lineList.append(line)
-	plt.legend()
-
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=5, fontsize=18, framealpha=1)	
+	plt.xlabel("High-level time k", fontsize=22)
+	plt.ylabel("Probability", fontsize=22)
+	
     def update(i):
 	    for j in range(0, len(variableAnimate)):
 	        lineList[j].set_data(xaxis[0:i], variableAnimate[j][0:i])
@@ -125,15 +136,12 @@ def main():
 	else:
 		plt.plot(time_belief, probMiss,'-k', label='Mission success')
 		plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
-		plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
-		plt.plot(time_belief, probObstArray[:,2],'-or', label='G1')
-		plt.plot(time_belief, probObstArray[:,3],'-oy', label='G2')
+		plt.plot(time_belief, probObstArray[:,1],'--sb', label='R2')
+		plt.plot(time_belief, probObstArray[:,2],'-og', label='G1')
+		plt.plot(time_belief, probObstArray[:,3],'--sg', label='G2')
 	plt.legend()
 
-	if option == 1:
-		saveGit('prob', time_belief, [np.array(probMiss), probObstArray[:,0], probObstArray[:,1]], ['k','b','g'],['Mission', 'R1', 'R2'], (-0.1, 1.3))
-	else:
-		saveGit('prob', time_belief, [np.array(probMiss), probObstArray[:,0], probObstArray[:,1], probObstArray[:,2], probObstArray[:,3]], ['k','b','g','r','y'],['Mission', 'R1', 'R2', 'G1', 'G2'], (-0.1, 1.3))
+
 	## =======================================================
 	## Read and plot INPUT
 	## =======================================================
@@ -141,22 +149,21 @@ def main():
 	u1=[]
 	u2=[]
 	time_u = []
-	for topic, msg, t in bag.read_messages(topics=['/segway_sim/mpc_input']):
-		inputVector.append(msg.inputVec)
-		u1.append(msg.inputVec[0])
-		u2.append(msg.inputVec[1])
+	for topic, msg, t in bag.read_messages(topics=['/cyberpod/input']):
+		inputVector.append(msg.input)
+		u1.append(msg.input[0])
+		u2.append(msg.input[1])
 		time_u.append((len(time_u))*dt_mpc)
 
 	u1_d=[]
 	u2_d=[]
 	time_u_d = []
-	for topic, msg, t in bag.read_messages(topics=['/uav_sim_ros/uav_cmd_des']):
-		u1_d.append(msg.vDes[0])
-		u2_d.append(msg.vDes[1])
+	for topic, msg, t in bag.read_messages(topics=['/t2/cmd_vel_mux/input/teleop']):
+		u1_d.append(msg.linear.x)
+		u2_d.append(msg.linear.z)
 		time_u_d.append((len(time_u_d))*dt_mpc)
 
 
-	inputOffSet = len(time_u_d)-len(time_u)
 	# plt.figure()
 	# plt.plot(time_u, u1, label='u1')
 	# plt.plot(time_u, u2, label='u2')
@@ -168,50 +175,57 @@ def main():
 	## =======================================================
 	state_s = []
 	time_state_s = []
-	for topic, msg, t in bag.read_messages(topics=['/segway_sim/state_true']):
-		state_t = [msg.x, msg.y, msg.theta, msg.v, msg.thetaDot, msg.psi, msg.psiDot]
-		# state_t = [msg.state[0], msg.state[1], msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
-		state_s.append(state_t)
-		time_state_s.append((len(time_state_s))*0.001)
+	for topic, msg, t in bag.read_messages(topics=['/cyberpod/state']):
+		# state_t = [msg.x, msg.y, msg.theta, msg.v, msg.thetaDot, msg.psi, msg.psiDot]
+		if (len(time_state_s))*0.001 < T_end:
+			state_t = [msg.state[0] + x_start_s , msg.state[1] + y_start_s , msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
+			state_s.append(state_t)
+			time_state_s.append((len(time_state_s))*0.001)
 
 	state_s_array = np.array(state_s)
 	
-	# plt.figure()
-	# plt.subplot(711)
-	# plt.plot(time_state_s, state_s_array[:,0], label='x')
-	# plt.subplot(712)
-	# plt.plot(time_state_s, state_s_array[:,1], label='y')
-	# plt.subplot(713)
-	# plt.plot(time_state_s, state_s_array[:,2], label='theta')
-	# plt.subplot(714)
-	# plt.plot(time_state_s, state_s_array[:,3], label='v')
-	# plt.subplot(715)
-	# plt.plot(time_state_s, state_s_array[:,4], label='thetaDot')
-	# plt.subplot(716)
-	# plt.plot(time_state_s, state_s_array[:,5], label='psi')
-	# plt.subplot(717)
-	# plt.plot(time_state_s, state_s_array[:,6], label='psiDot')
-	# plt.legend()
+	plt.figure()
+	plt.subplot(711)
+	plt.plot(time_state_s, state_s_array[:,0], label='x')
+	plt.legend()
+	plt.subplot(712)
+	plt.plot(time_state_s, state_s_array[:,1], label='y')
+	plt.legend()
+	plt.subplot(713)
+	plt.plot(time_state_s, state_s_array[:,2], label='theta')
+	plt.legend()
+	plt.subplot(714)
+	plt.plot(time_state_s, state_s_array[:,3], label='v')
+	plt.legend()
+	plt.subplot(715)
+	plt.plot(time_state_s, state_s_array[:,4], label='thetaDot')
+	plt.legend()
+	plt.subplot(716)
+	plt.legend()
+	plt.plot(time_state_s, state_s_array[:,5], label='psi')
+	plt.subplot(717)
+	plt.legend()
+	plt.plot(time_state_s, state_s_array[:,6], label='psiDot')
+	plt.legend()
 
 	state_d = []
 	time_state_d = []
-	for topic, msg, t in bag.read_messages(topics=['/uav_sim_ros/state']):
-		state_t = [msg.x, msg.y, msg.vbx, msg.vby]
-		# state_t = [msg.state[0], msg.state[1], msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
-		state_d.append(state_t)
-		time_state_d.append((len(time_state_d))*0.001)
+	for topic, msg, t in bag.read_messages(topics=['/t2/odom']):
+		if (len(time_state_d))*0.001 < T_end:
+			state_t = [msg.pose.pose.position.x + x_start_tb , msg.pose.pose.position.y + y_start_tb , 0.0, 0.0]
+			# state_t = [msg.state[0], msg.state[1], msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
+			state_d.append(state_t)
+			time_state_d.append((len(time_state_d))*0.001)
 
 	state_d_array = np.array(state_d)
 	
 	plt.figure()
-	plt.subplot(411)
+	plt.subplot(311)
 	plt.plot(time_state_d, state_d_array[:,0], label='x')
-	plt.subplot(412)
+	plt.subplot(312)
 	plt.plot(time_state_d, state_d_array[:,1], label='y')
-	plt.subplot(413)
-	plt.plot(time_state_d, state_d_array[:,2], label='vx')
-	plt.subplot(414)
-	plt.plot(time_state_d, state_d_array[:,3], label='vy')
+	plt.subplot(313)
+	plt.plot(time_state_d, state_d_array[:,2], label='v')
 	plt.legend()
 
 
@@ -230,22 +244,24 @@ def main():
 	yGoal = []
 	xCurr = []
 	x_IC = []
-	for topic, msg, t in bag.read_messages(topics=['/segway_sim/optimal_sol']):
-		optSol.append(msg.optimalSolution)
-		time_optSol.append((len(time_optSol))*dt_mpc)
-		solverFlag.append(msg.solverFlag)
-		solverTime.append(msg.solverTime)
-		xGoal.append(msg.x)
-		yGoal.append(msg.y)
-		x_IC.append(msg.x_IC)
-		xCurr.append(msg.xCurr)
-		delay_ms = msg.delay_ms
+	for topic, msg, t in bag.read_messages(topics=['/cyberpod/optimal_sol']):
+		if (len(time_optSol))*dt_mpc < T_end:
+			optSol.append(msg.optimalSolution)
+			time_optSol.append((len(time_optSol))*dt_mpc)
+			solverFlag.append(msg.solverFlag)
+			solverTime.append(msg.solverTime)
+			xGoal.append(msg.x)
+			yGoal.append(msg.y)
+			x_IC.append(msg.x_IC)
+			xCurr.append(msg.xCurr)
+			delay_ms = msg.delay_ms
 
 	drone_solv = []
 	time_drone_opt = []
-	for topic, msg, t in bag.read_messages(topics=['/segway_sim/drone_opt']):
-		drone_solv.append(msg.solverTime)
-		time_drone_opt.append((len(time_drone_opt))*dt_mpc)
+	for topic, msg, t in bag.read_messages(topics=['/t2/drone_opt']):
+		if (len(time_drone_opt))*dt_mpc < T_end:
+			drone_solv.append(msg.solverTime)
+			time_drone_opt.append((len(time_drone_opt))*dt_mpc)
 	
 
 	error = []
@@ -264,13 +280,13 @@ def main():
 	fig = plt.figure()
 	ax = plt.subplot2grid((1, 1), (0, 0))
 	plt.plot(state_s_array[:,0], state_s_array[:,1], '-k',label='Segway')
-	plt.plot(state_d_array[:,0], state_d_array[:,1], '-b',label='Drone')
+	plt.plot(state_d_array[:,0], state_d_array[:,1], '-b',label='Wheeled bot')
 	for i in range(0,row_grid+1):
 		plt.plot([i,i], [0,col_grid], '-k')
 	for i in range(0, col_grid+1):
 		plt.plot([0,row_grid], [i,i], '-k')
 	plt.plot(xy_seg_array[:,0], xy_seg_array[:,1], 'sk',label='Segway goal positions')
-	plt.plot(xy_drn_array[:,0], xy_drn_array[:,1], 'sb',label='Drone goal positions')
+	plt.plot(xy_drn_array[:,0], xy_drn_array[:,1], 'sb',label='Wheeled bot goal positions')
 	
 	# Draw regions
 	# Add goal
@@ -282,30 +298,30 @@ def main():
 		goalPatchList = addDynamicComponent(momdp, ax, momdp.col_goal, momdp.row_goal, goalColor, totProb)
 	
 	# Add known static obstacles
-	obsColor  =(0.7, 0.2, 0.2)
+	obsColor  =(1.0, 1.0, 0.0)
 	addStaticComponents(momdp, ax, -1, obsColor)
 	# Add uncertain regions
-	obsColor  =(0.7, 0.2, 0.2)
-	totProb = [0.4, 0.4]
+	obsColor  =(0.0, 0.1, 0.8)
+	totProb = [0.2, 0.2]
 	obstPatchList = addDynamicComponent(momdp, ax, momdp.col_obs, momdp.row_obs, obsColor, totProb)
 	# ax.square()
 	ax.set(aspect='equal')
 	plt.xlabel('x [m]', fontsize=22)
 	plt.ylabel('y [m]', fontsize=22)
-	plt.legend(loc=1, fontsize=22, framealpha=1)
+	plt.legend(loc=3, fontsize=22, framealpha=1)
 
 
 	fig = plt.figure()
 	# ax = fig.add_subplot(2, 1, 0)
 	ax = plt.subplot2grid((20, 1), (0, 0), rowspan=16)
 	plt.plot(state_s_array[:,0], state_s_array[:,1], '-k',label='Segway')
-	plt.plot(state_d_array[:,0], state_d_array[:,1], '-r',label='Drone')
+	plt.plot(state_d_array[:,0], state_d_array[:,1], '-r',label='Wheeled bot')
 	for i in range(0,row_grid+1):
 		plt.plot([i,i], [0,col_grid], '-k')
 	for i in range(0, col_grid+1):
 		plt.plot([0,row_grid], [i,i], '-k')
 	plt.plot(xy_seg_array[:,0], xy_seg_array[:,1], 'sk',label='Segway goal positions')
-	plt.plot(xy_drn_array[:,0], xy_drn_array[:,1], 'sr',label='Drone goal positions')
+	plt.plot(xy_drn_array[:,0], xy_drn_array[:,1], 'sr',label='Wheeled bot goal positions')
 	
 	# Draw regions
 	# Add goal
@@ -329,84 +345,6 @@ def main():
 	plt.ylabel('y [m]', fontsize=22)
 	plt.legend(loc=1, fontsize=22, framealpha=1)
 	
-
-	pdb.set_trace()
-	pCorr = np.append(np.append(probMiss[0:15],probMiss[15:18]),probMiss[15:])
-	
-	p1 = np.append(np.append(probObstArray[0:15,0],probObstArray[15:18,0]),probObstArray[15:,0])
-	p2 = np.append(np.append(probObstArray[0:15,1],probObstArray[15:18,1]),probObstArray[15:,1])
-	p3 = np.append(np.append(probObstArray[0:15,2],probObstArray[15:18,2]),probObstArray[15:,2])
-	p4 = np.append(np.append(probObstArray[0:15,3],probObstArray[15:18,3]),probObstArray[15:,3])
-	tCorr = np.arange(pCorr.shape[0])
-
-	# ax = fig.add_subplot(4, 1, 4)
-	ax = plt.subplot2grid((20, 1), (17, 0), rowspan=3)
-	if option == 1:
-		plt.plot(time_belief, probMiss,'-k', label='Mission success')
-		plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
-		plt.plot(time_belief, probObstArray[:,1],'-og', label='R2')
-	else:
-		# plt.plot(time_belief, probMiss,'-k', label='Mission success')
-		# plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
-		# plt.plot(time_belief, probObstArray[:,1],'--sb', label='R2')
-		# plt.plot(time_belief, probObstArray[:,2],'-og', label='G1')
-		# plt.plot(time_belief, probObstArray[:,3],'--sg', label='G2')
-		plt.plot(tCorr, pCorr,'-k', label='Mission success')
-		plt.plot(tCorr, p1,'-ob', label='R1')
-		plt.plot(tCorr, p2,'--sb', label='R2')
-		plt.plot(tCorr, p3,'-og', label='G1')
-		plt.plot(tCorr, p4,'--sg', label='G2')
-
-		plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=5, fontsize=18, framealpha=1)	
-		plt.ylabel('Probability', fontsize=22)
-		plt.ylim(-0.1,1.6)
-	plt.xlabel('high-level time k')
-
-	fig = plt.figure()
-	# ax = fig.add_subplot(2, 1, 0)
-	ax = plt.subplot2grid((20, 1), (0, 0), rowspan=16)
-	plt.plot(state_s_array[:,0], state_s_array[:,1], '-k',label='Segway')
-	plt.plot(state_d_array[:,0], state_d_array[:,1], '-r',label='Drone')
-	for i in range(0,row_grid+1):
-		plt.plot([i,i], [0,col_grid], '-k')
-	for i in range(0, col_grid+1):
-		plt.plot([0,row_grid], [i,i], '-k')
-	plt.plot(xy_seg_array[:,0], xy_seg_array[:,1], 'sk',label='Segway goal positions')
-	plt.plot(xy_drn_array[:,0], xy_drn_array[:,1], 'sr',label='Drone goal positions')
-	
-	# Draw regions
-	# Add goal
-	goalColor  =(0.0, 0.7, 0.0)
-	if momdp.unGoal == False:
-		addStaticComponents(momdp, ax, 1, goalColor)
-	else:
-		totProb = [0.3, 0.3]
-		goalPatchList = addDynamicComponent(momdp, ax, momdp.col_goal, momdp.row_goal, goalColor, totProb)
-	
-	# Add known static obstacles
-	obsColor  =(1.0, 1.0, 0.0)
-	addStaticComponents(momdp, ax, -1, obsColor)
-	# Add uncertain regions
-	obsColor  =(0.0, 0.1, 0.8)
-	totProb = [0.2, 0.2]
-	obstPatchList = addDynamicComponent(momdp, ax, momdp.col_obs, momdp.row_obs, obsColor, totProb)
-	# ax.square()
-	ax.set(aspect='equal')
-	plt.xlabel('x [m]', fontsize=22)
-	plt.ylabel('y [m]', fontsize=22)
-	plt.legend(loc=1, fontsize=22, framealpha=1)
-	
-
-	pCorr = np.append(np.append(probMiss[0:15],probMiss[15:18]),probMiss[15:])
-	
-	p1 = np.append(np.append(probObstArray[0:15,0],probObstArray[15:18,0]),probObstArray[15:,0])
-	p2 = np.append(np.append(probObstArray[0:15,1],probObstArray[15:18,1]),probObstArray[15:,1])
-	p3 = np.append(np.append(probObstArray[0:15,2],probObstArray[15:18,2]),probObstArray[15:,2])
-	p4 = np.append(np.append(probObstArray[0:15,3],probObstArray[15:18,3]),probObstArray[15:,3])
-	tCorr = np.arange(pCorr.shape[0])
-
-	pdb.set_trace()
-
 	# ax = fig.add_subplot(4, 1, 4)
 	ax = plt.subplot2grid((20, 1), (17, 0), rowspan=3)
 	if option == 1:
@@ -419,78 +357,67 @@ def main():
 		plt.plot(time_belief, probObstArray[:,1],'--sb', label='R2')
 		plt.plot(time_belief, probObstArray[:,2],'-og', label='G1')
 		plt.plot(time_belief, probObstArray[:,3],'--sg', label='G2')
-
 		plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=5, fontsize=18, framealpha=1)	
 		plt.ylabel('Probability', fontsize=22)
 		plt.ylim(-0.1,1.6)
 	plt.xlabel('high-level time k')
+
 	
 	# Continous time figure
+
 	fig = plt.figure()
 	# subplot 1
-	# subplot 2
 	ax = plt.subplot2grid((3, 1), (0, 0), rowspan=1)
-	plt.plot(time_optSol, solverTime , '-k',label='Segway MPC')
-	plt.plot(time_drone_opt[0:-inputOffSet], drone_solv[inputOffSet:] , '-r',label='Drone MPC')
-	plt.ylabel('time [s]', fontsize=22)
-	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=2, fontsize=22, framealpha=1)	
-	# subplot 3
+	plt.plot(time_optSol, solverTime , '-g',label='Segway MPC')
+	plt.plot(time_drone_opt, drone_solv , '-b',label='Wheeled bot MPC')
+	plt.xlabel('time [s]')
+	plt.ylabel('time [s]')
+	plt.legend()
+	# subplot 2
 	ax = plt.subplot2grid((3, 1), (1, 0), rowspan=1)
 	plt.plot(time_u, u1, '-r', label='Left motor')
 	plt.plot(time_u, u2, '-b', label='Right motor')
-	plt.plot([0, time_u[-1]], [10, 10], '-k', label='Constraint')
-	plt.plot([0, time_u[-1]], [-10, -10], '-k')
-	plt.ylabel('Torque [m]', fontsize=22)
-	plt.ylim(-11.0, 11.5)
-	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=3, fontsize=22, framealpha=1)	
-	# subplot 4
+	plt.xlabel('time [s]')
+	plt.ylabel('Torque [m]')
+	plt.legend()
+	# subplot 3
 	ax = plt.subplot2grid((3, 1), (2, 0), rowspan=1)
-	plt.plot(time_u_d[0:-inputOffSet], u1_d[inputOffSet:], '-r', label='Vx')
-	plt.plot(time_u_d[0:-inputOffSet], u2_d[inputOffSet:], '-b', label='Vy')
-	plt.plot([0, time_u_d[-inputOffSet]], [1, 1], '-k', label='Constraint')
-	plt.plot([0, time_u_d[-inputOffSet]], [-1, -1], '-k')
-	plt.ylim(-1.1, 1.4)
-	plt.xlabel('time [s]', fontsize=22)
-	plt.ylabel('velocity [m/s]', fontsize=22)
-	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=3, fontsize=22, framealpha=1)	
+	plt.plot(time_u_d, u1_d, '-r', label='Velocity')
+	plt.plot(time_u_d, u2_d, '-b', label='Yaw rate')
+	plt.xlabel('time [m]')
+	plt.ylabel('velocity [m/s]')
+	plt.legend()	
+	plt.xlabel('high-level time')
 
 
-	fig = plt.figure()
-	# subplot 1
-	ax = plt.subplot2grid((4, 1), (0, 0), rowspan=1)
-	plt.plot(time_belief, probMiss,'-k', label='Mission success')
-	plt.plot(time_belief, probObstArray[:,0],'-ob', label='R1')
-	plt.plot(time_belief, probObstArray[:,1],'--sb', label='R2')
-	plt.plot(time_belief, probObstArray[:,2],'-og', label='G1')
-	plt.plot(time_belief, probObstArray[:,3],'--sg', label='G2')
-	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=5, fontsize=22, framealpha=1)	
+ 	c = probObstArray[np.ix_([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,28,29,30,31,32,33,34,35,36,37],[0,1,2,3,4])]
+
+ 	prbToPlot = []
+ 	time_belief_new = []
+ 	for idx in [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,28,29,30,31,32,33,34,35,36,37]:
+ 		prbToPlot.append(probMiss[idx])
+ 		time_belief_new.append(len(time_belief_new))
+
+	# subplot 1	
+	ax = plt.subplot2grid((2, 1), (0, 0), rowspan=1)
+	plt.plot(time_belief_new, prbToPlot,'-k', label='Mission success')
+	plt.plot(time_belief_new, c[:,0],'-ob', label='R1')
+	plt.plot(time_belief_new, c[:,1],'--sb', label='R2')
+	plt.plot(time_belief_new, c[:,2],'-og', label='G1')
+	plt.plot(time_belief_new, c[:,3],'--sg', label='G2')
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=3, fontsize=18, framealpha=1)	
 	plt.ylabel('Probability', fontsize=22)
 	plt.ylim(-0.1,1.4)
+	plt.xlabel('high-level time k', fontsize=22)
+
 	# subplot 2
-	ax = plt.subplot2grid((4, 1), (1, 0), rowspan=1)
-	plt.plot(time_optSol, solverTime , '-g',label='Segway MPC')
-	plt.plot(time_drone_opt[0:-inputOffSet], drone_solv[inputOffSet:] , '-b',label='Drone MPC')
-	plt.ylabel('time [s]', fontsize=22)
-	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=2, fontsize=22, framealpha=1)	
-	# subplot 3
-	ax = plt.subplot2grid((4, 1), (2, 0), rowspan=1)
-	plt.plot(time_u, u1, '-r', label='Left motor')
-	plt.plot(time_u, u2, '-b', label='Right motor')
-	plt.plot([0, time_u[-1]], [10, 10], '-k', label='Constraint')
-	plt.plot([0, time_u[-1]], [-10, -10], '-k')
-	plt.ylabel('Torque [m]', fontsize=22)
-	plt.ylim(-11.0, 11.5)
-	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=3, fontsize=22, framealpha=1)	
-	# subplot 4
-	ax = plt.subplot2grid((4, 1), (3, 0), rowspan=1)
-	plt.plot(time_u_d[0:-inputOffSet], u1_d[inputOffSet:], '-r', label='Vx')
-	plt.plot(time_u_d[0:-inputOffSet], u2_d[inputOffSet:], '-b', label='Vy')
-	plt.plot([0, time_u_d[-inputOffSet]], [1, 1], '-k', label='Constraint')
-	plt.plot([0, time_u_d[-inputOffSet]], [-1, -1], '-k')
-	plt.ylim(-1.1, 1.4)
+	ax = plt.subplot2grid((2, 1), (1, 0), rowspan=1)
+	plt.plot(time_optSol, solverTime , '-k',label='Segway MPC')
+	plt.plot(time_drone_opt, drone_solv , '-r',label='Wheeled bot MPC')
+	plt.legend(fontsize=18, framealpha=1)	
 	plt.xlabel('time [s]', fontsize=22)
-	plt.ylabel('velocity [m/s]', fontsize=22)
-	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=3, fontsize=22, framealpha=1)	
+	plt.ylabel('time [s]', fontsize=22)
+
 	
 	
 	# plt.figure()
@@ -512,7 +439,25 @@ def main():
 
 	plt.figure()
 	plt.plot(time_optSol, solverTime , '-g',label='Segway MPC')
-	plt.plot(time_drone_opt, drone_solv , '-b',label='Drone MPC')
+	plt.plot(time_drone_opt, drone_solv , '-b',label='Wheeled bot MPC')
+	# pdb.set_trace()
+	if option == 1:
+		saveGit('prob', time_belief, [np.array(probMiss), probObstArray[:,0], probObstArray[:,1]], ['k','b','g'],['Mission', 'R1', 'R2'], (-0.1, 1.3))
+	else:
+		saveGit('prob', time_belief, [np.array(probMiss), probObstArray[:,0], probObstArray[:,1], probObstArray[:,2], probObstArray[:,3]], ['-k','-ob','--sb','-og','--sg'],['Mission', 'R1', 'R2', 'G1', 'G2'], (-0.1, 1.3))
+	# saveGit('compTime', time_optSol, [np.array(solverTime), np.array(drone_solv)], ['-k','-r'],['Segway MPC', 'Drone MPC'], (-0.05, 0.5))
+
+
+	with open('test.npy', 'wb') as f:
+		np.save(f, time_optSol)
+		np.save(f, np.array(solverTime))
+		np.save(f, np.array(drone_solv))
+
+
+	with open('obstBelief.npy', 'wb') as f:
+		np.save(f, time_belief)
+		np.save(f, np.array(probMiss))
+		np.save(f, np.array(probObstArray))
 
 	plt.show()
 

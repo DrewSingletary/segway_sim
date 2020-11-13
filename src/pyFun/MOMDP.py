@@ -215,26 +215,38 @@ class MOMDP(object):
 
 					# the variable preFeasible tells us if we could be at x_{k+1} after applying u_k 
 					P_observe = 1 
+					opt = 1	
 					for ii in range(0, self.numObs):
 						dist = np.abs(i-self.row_obs[ii]) + np.abs(j-self.col_obs[ii]) # compute distance from obstacle number ii
 						
 						# compute join probability 
 						if dist <= 1:
 							P_observe = np.kron(M1,P_observe)*preFeasible
-						elif (dist == 2) and (np.abs(i-self.row_obs[ii]) == 1):
+						elif (opt == 1) and (dist == 2):## and (np.abs(i-self.row_obs[ii]) == 1):
 							P_observe = np.kron(M2,P_observe)*preFeasible
-						else:
+						elif (opt == 1):
 							P_observe = np.kron(M3,P_observe)*preFeasible
+						else:
+							p = 0.5 + (0.3)*np.exp(-np.abs(dist-2.0)/2.5)
+							M = np.array([[p, 1-p],
+										  [1-p, p]])
+							P_observe = np.kron(M, P_observe)*preFeasible;
 
 					for ii in range(0, self.numUGoal):
 						dist = np.abs(i-self.row_goal[ii]) + np.abs(j-self.col_goal[ii]) # compute distance from obstacle number ii
 						# compute join probability 
+
 						if dist <= 0:
 							P_observe = np.kron(M1,P_observe)*preFeasible
-						elif (dist == 1):
+						elif (opt == 1) and (dist == 1):
 							P_observe = np.kron(M2,P_observe)*preFeasible
-						else:
+						elif (opt == 1):
 							P_observe = np.kron(M3,P_observe)*preFeasible
+						else:
+							p = 0.5 + (0.75)*np.exp(-np.abs(dist))
+							M = np.array([[p, 1-p],
+										  [1-p, p]])
+							P_observe = np.kron(M, P_observe)*preFeasible;
 
 					O[:, self.stateMap[i,j]] = P_observe[:, e]
 		
@@ -563,23 +575,34 @@ class MOMDP(object):
 	def approxValueFunction(self, t, xCurr, bCurr):
 		coordXY = []
 		xCurLst = []
-		for i in range(0, min(3, self.V.shape[0] - t - 1)):
-			if xCurr == self.goal and coordXY != [] and sum(sum(self.gridVar==1.0)) > 1:
-				coordXY.append(coordXY[-1])
+		for i in range(0, 3):
+			if i < self.V.shape[0] - t - 1:
+				if xCurr == self.goal and coordXY != [] and sum(sum(self.gridVar==1.0)) > 1:
+					coordXY.append(coordXY[-1])
+					xCurLst.append(xCurLst[-1])
+				else:
+					coordXY.append(self.getCoordinates(xCurr))
+					xCurLst.append(xCurr)
+				[at, spec, cost] = self.evaluatePolicy(t+i, xCurr, bCurr)
+				xCurr = self.propagate(xCurr, self.zt, at)
 			else:
-				coordXY.append(self.getCoordinates(xCurr))
-			xCurLst.append(xCurr)
-			[at, spec, cost] = self.evaluatePolicy(t+i, xCurr, bCurr)
-			xCurr = self.propagate(xCurr, 0, at)
-
+				if xCurr == self.goal and coordXY != [] and sum(sum(self.gridVar==1.0)) > 1:
+					coordXY.append(coordXY[-1])
+					xCurLst.append(xCurLst[-1])
+				else:
+					coordXY.append(self.getCoordinates(xCurr))
+					xCurLst.append(xCurr)
+			
 		return coordXY, xCurLst
 
 	def updateMOMDP(self, t, xt, bt):
 		coordXY, xCurLst = self.approxValueFunction(t, xt, bt)
 		[action, spec, cost] = self.evaluatePolicy(t, xt, bt)
+
 		boxConstraints = self.getBoxConstr(xCurLst[0], xCurLst[1])
 		boxNext        = self.getBoxCurren(xCurLst[1])
 
+		print "xCurLst: ", xCurLst
 		return action, coordXY, boxConstraints, boxNext
 
 	def computeBelief(self, bt, idx):
@@ -590,9 +613,9 @@ class MOMDP(object):
 
 class MOMDP_TOQ(MOMDP):
 
-	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal = False):  
+	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal = False, valFunFlag = True):  
 		# super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal) # uncomment for py3
-		super(MOMDP_TOQ, self).__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal) # uncomment for py2
+		super(MOMDP_TOQ, self).__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal, valFunFlag) # uncomment for py2
 
 	def  backupLoopBeliefPoint(self, xt):
 		J_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))
@@ -946,7 +969,8 @@ class MOMDP_TOQ_d(MOMDP):
 class MOMDP_TO(MOMDP):
 
 	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt):  
-		super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt) 
+		super(MOMDP_TO, self).__init__(gridVar, totTimeSteps, printLevel, policy, discOpt) # uncomment for py2
+		# super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt) 
 
 	def  backupLoopBeliefPoint(self, xt):
 		V_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))			
@@ -1029,8 +1053,9 @@ class MOMDP_TO(MOMDP):
 
 class MOMDP_Q(MOMDP):
 
-	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt):  
-		super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt) 
+	def __init__(self, gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal, valFunFlag):  
+		super(MOMDP_Q, self).__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal, valFunFlag) # uncomment for py2
+		# super().__init__(gridVar, totTimeSteps, printLevel, policy, discOpt, unGoal, valFunFlag) 
 
 	def  backupLoopBeliefPoint(self, xt):
 		J_out	= np.zeros((np.shape(self.Belief)[0],np.shape(self.Belief)[1]))				

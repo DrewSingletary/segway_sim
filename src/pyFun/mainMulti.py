@@ -20,10 +20,14 @@ def evaluateSinglePolicy(load, digitsResults, printLevel, discOpt):
 	numObst = 2
  	unGoal = True
  	
+ 	numObst = 2
+ 	unGoal = False
+ 	
  	if unGoal == False:
 		gridWorld = '7x7'
 	else:
 		gridWorld = '7x7ug'
+		# gridWorld = '5x5ug'
 	policy = 'segway'
 	momdpSegway = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = unGoal)
 	runSim(momdpSegway, gridWorld, numObst, policy, printLevel, digitsResults) 
@@ -32,6 +36,7 @@ def evaluateSinglePolicy(load, digitsResults, printLevel, discOpt):
 	if unGoal == False:
 		gridWorld = '7x7_d' # IMPORTANT: for the drone there is always one goal --> unGoal = False
 	else:
+		gridWorld = '7x7ug_d' # IMPORTANT: for the drone there is always one goal --> unGoal = False
 		gridWorld = '7x7ug_d' # IMPORTANT: for the drone there is always one goal --> unGoal = False
 	momdpDrone  = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, momdpSegway = momdpSegway)
 	runSim(momdpDrone, gridWorld, numObst, policy, printLevel, digitsResults) 

@@ -9,3 +9,4 @@ float64[2] uTot
 float64 flagQP
 float64 V
 float64 h
+float64 QPtime

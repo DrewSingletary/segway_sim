@@ -51,7 +51,7 @@ double e_thetaDot = {};
 double e_psi      = {};
 double e_psiDot   = {};
 double enlarge    = {};
-double lowLevelActive = {};
+bool lowLevelActive;
 
 int flag_state_measurement = 0;
 int flag_goalSetAndState_measurement = 0;
@@ -206,7 +206,8 @@ int main (int argc, char *argv[])
 	nhParams_->param<double>("e_psi"     , e_psi,0.);
 	nhParams_->param<double>("e_psiDot"  , e_psiDot,0.);
 	nhParams_->param<double>("enlarge"   , enlarge,0.);
-	nhParams_->param<double>("/segway_sim/low_level/low_level_active"   , lowLevelActive,0.);
+	nhParams_->param<bool>("/segway_sim/low_level/low_level_active"   , lowLevelActive,false);
+	cout << "================= lowLevelActive: " << lowLevelActive << endl;
 
 	ros::param::get("~_btn_init", btn_init);
 	ros::param::get("~_btn_run", btn_run);
@@ -358,6 +359,18 @@ int main (int argc, char *argv[])
 			xCurr[0] = stateCurrent_.x + x_start*hardware_;
 			xCurr[1] = stateCurrent_.y + y_start*hardware_;
 			xCurr[2] = stateCurrent_.theta;
+			
+			// cout << xCurr[2] << endl;
+			
+			// xCurr[2] = fmod(xCurr[2]+M_PI,2.0 * M_PI);
+			
+			// if (xCurr[2] < 0)
+	  //   		xCurr[2] += 2.0 * M_PI;
+    		
+   //  		xCurr[2] += - M_PI;
+			
+			// cout << xCurr[2] << endl;
+
 			xCurr[3] = stateCurrent_.v;
 			xCurr[4] = stateCurrent_.thetaDot;
 			xCurr[5] = stateCurrent_.psi - offset_angle_;
@@ -410,6 +423,7 @@ int main (int argc, char *argv[])
 			// solve QP
 			mpcValFun->solveQP();
 			if ((mpcValFun->solverFlag == 1) or (mpcValFun->solverFlag == 2)){
+				optSol_.contPlan = 0;
 				for (int i = 0; i < 11; i++){
 					goalSetAndStateVectorOld[i] = goalSetAndStateVector[i];
 				}
@@ -421,11 +435,17 @@ int main (int argc, char *argv[])
 				mpcValFun->buildConstrMatrix();
 				mpcValFun->buildConstrVector();
 				mpcValFun->solveQP();
-				cout << "==================== Flag Contingency Plan: "<< mpcValFun->solverFlag << endl;
-				mpcValFun->updateGoalSetAndState(goalSetAndStateVector);			
+				if (mpcValFun->solverFlag==1){
+					cout << "==================== Contingency Plan: OPTIMAL! ========= " << endl;					
+				}else{
+					cout << "==================== Flag Contingency Plan: "<< mpcValFun->solverFlag << endl;					
+				}
+				mpcValFun->updateGoalSetAndState(goalSetAndStateVector);	
+				optSol_.contPlan = 1;
+
 			}
 
-			if ( horizonCounter == 1){
+			if ( horizonCounter == 0){
 				mpcValFun->updateHorizon();
 				horizonCounter = 0;
 			} else {

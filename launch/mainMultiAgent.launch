@@ -10,7 +10,7 @@
 
 		<node name="integrator_drone" pkg="uav_sim_ros" type="integrator_node" output="screen">
 			<param name="dt" value="0.001" />
-			<rosparam param="IC">[0.5, 6.5, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+			<rosparam param="IC">[0.5, 6.5, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
 		</node>
 
 		<node name="safety_filter" pkg="uav_sim_ros" type="safety_filter_node" output="screen">
@@ -39,7 +39,7 @@
 		</node>
 
 		<node name="controller_drone" pkg="uav_sim_ros" type="controller_node" output="screen">
-			<param name="hoverThrust" value="0.52" />
+			<param name="hoverThrust" value="0.5127" />
 			<param name="KiVz" value="5.0" />
 			<param name="KpVz" value="1.0" />
 			<param name="KpVxy" value="0.1" />
@@ -118,14 +118,16 @@
 			<param name="enlarge"    type="double" value="0.3"/>		
 		</node>
 
-<!-- 		<node name="momdpMultiAgent_node" pkg="segway_sim" type="momdpMultiAgent_node.py" output="screen">
+		<node name="momdpMultiAgent_node" pkg="segway_sim" type="momdpMultiAgent_node.py" output="screen">
 			<param name="expFlag" value="0"/>
 			<param name="x_start_d" value="0.5"/>
 			<param name="y_start_d" value="6.5"/>
 			<param name="x_start_s" value="0.5"/>
 			<param name="y_start_s" value="6.5"/>
 			
-		</node> -->
+		</node>
+
+		
 		<node name="mpc_drone" pkg="segway_sim" type="mpc_drone_node" output="screen">
 			<param name="hardware" value="false"/>
 			<param name="mpc_input_delay" value="-1.0"/>

@@ -8,3 +8,4 @@ float64 y
 float64[7] xCurr
 float64[7] x_IC
 float64 delay_ms
+float64 contPlan
