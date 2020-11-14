@@ -32,9 +32,9 @@
 #define MODE_BACKUP 30
 #define MSG_CTRL 'K'
 
-static const uint32_t nx = 4;     // Number of system state
-static const uint32_t nu = 2;     // Number of inputs
-static const uint32_t N  = 15; 	  // Horizon length
+static const int nx = 4;     // Number of system state
+static const int nu = 2;     // Number of inputs
+static const int N  = 20; 	  // Horizon length
 static const uint32_t printLevel =  0; // 0 = no printing, 1 = only x_t, 2 = minimal, 3 = minimal + initialization, 4 = all
 
 union num32_t {

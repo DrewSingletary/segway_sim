@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 	<arg name="teleop" default="joy" />
-   <arg name="viz" default="on"/>
+   <arg name="viz" default="off"/>
    <arg name="filter" default="off"/>
 
 	<include file="$(find segway_sim)/launch/rvizMultiAgent.launch" if="$(eval viz == 'on')"/>
@@ -128,7 +128,7 @@
 		</node>
 
 		
-		<node name="mpc_drone" pkg="segway_sim" type="mpc_drone_node" output="screen">
+<!-- 		<node name="mpc_drone" pkg="segway_sim" type="mpc_drone_node" output="screen">
 			<param name="hardware" value="false"/>
 			<param name="mpc_input_delay" value="-1.0"/>
 			<param name="x_start" value="0.5"/>
@@ -139,7 +139,7 @@
 			<param name="e_vby"        type="double" value="0.3"/>
 
 			<param name="enlarge"    type="double" value="0.3"/>		
-		</node>
+		</node> -->
 
 <!-- 		<node name="drone_mpc_python" pkg="segway_sim" type="drone_mpc_python.py" output="screen">
 			<param name="x_start_d" value="0.5"/>

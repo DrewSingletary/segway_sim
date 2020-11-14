@@ -2,7 +2,7 @@
 <launch>
 	<arg name="teleop" default="joy" />
 	<arg name="filter" default="on"/>
-	<arg name="viz" default="on"/>
+	<arg name="viz" default="off"/>
 
 	<include file="$(find segway_sim)/launch/rviz.launch" if="$(eval viz == 'on')"/>
 
@@ -59,7 +59,7 @@
 			<param name="enlarge"    type="double" value="0.0"/>		
 		</node>
 
-		<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/ugo/rosbag/"/> 
+		<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/drew/rosbag/"/> 
 	
 	</group>
 </launch>

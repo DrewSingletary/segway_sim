@@ -148,6 +148,12 @@ int main (int argc, char *argv[])
 	error_max_[1] = e_y;
 	error_max_[3] = e_vby;
 
+	error_max_[0] = 0;
+	error_max_[2] = 0;
+	error_max_[1] = 0;
+	error_max_[3] = 0;
+	enlarge= 0;
+
 	double xCurr[nx]{}; // current measured state
 	double uCurr[nu]{}; // current applied input
 

@@ -18,9 +18,12 @@ from main import getMOMDP
 from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 matplotlib.rcParams.update({'font.size': 22})
 
-bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
+# bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
+# bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
 
-bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
+bag = rosbag.Bag('/home/drew/rosbag/_2020-11-14-12-21-09.bag')
+bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-14-12-07-15.bag')
+
 
 dt_mpc = 0.05
 col_grid = 8
