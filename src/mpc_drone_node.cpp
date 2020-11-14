@@ -230,6 +230,22 @@ int main (int argc, char *argv[])
 	mpcValFun->buildConstrVector();
 	mpcValFun->solveQP();  // Solve QP to check the everything works
 
+	  cout << "OPTIMAL States New:"<< std::endl;
+	  for (int i = 0; i< nx; i++){
+		  for (int j = 0; j < N+1; ++j)
+			  {cout << mpcValFun->xPred[j*nx+i] <<",";}
+		  cout << endl;
+	  }	
+	  cout << endl;
+
+		cout << "OPTIMAL Inputs:"<< std::endl;
+		for (int i = 0; i< nu; i++){
+			for (int j = 0; j < N; ++j)
+				cout << mpcValFun->uPred[j*nu+i] <<",";
+			cout << endl;
+		}	
+		cout << endl;
+
 	if (printLevel > 0) {
 	  cout << "OPTIMAL States New:"<< std::endl;
 	  for (int i = 0; i< nx; i++){
