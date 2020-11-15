@@ -8,6 +8,7 @@
 #include "segway_sim/common.hpp"
 #include "segway_sim/linearMatrices.h"
 #include "segway_sim/lowLevelLog.h"
+#include "segway_sim/optSol.h"
 #include <fstream>
 
 #include <iostream>

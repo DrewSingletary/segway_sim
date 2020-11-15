@@ -3,6 +3,10 @@
 using namespace std;
 using namespace ModelPredictiveControllerValFun;
 
+double time_after_delay_ = 10;
+double delay_ = 250;
+double t0_;
+
 // Global declarations
 ros::NodeHandle *nh_;
 ros::NodeHandle *nhParams_;
@@ -339,8 +343,20 @@ int main (int argc, char *argv[])
 
 	ros::Rate rate(1/dt_);
 	// Take it for a spin
+
+	ros::Time t0 = ros::Time::now();
 	while(ros::ok())
 	{
+		ros::Time tnow = ros::Time::now();
+		if ((ros::Duration(tnow-t0) > ros::Duration(time_after_delay_)) and (delay_ > 1))
+		{
+			if (delay_ != 0)
+				ROS_INFO("before: %i", ros::Time::now());
+			ros::Duration(.25).sleep();
+			if (delay_ != 0)
+				ROS_INFO("after: %i",ros::Time::now());
+			delay_ = 0;
+		}
 		//Get latest input
 		ros::spinOnce();
 
@@ -445,7 +461,7 @@ int main (int argc, char *argv[])
 
 			}
 
-			if ( horizonCounter == 0){
+			if ( horizonCounter == 2){
 				mpcValFun->updateHorizon();
 				horizonCounter = 0;
 			} else {

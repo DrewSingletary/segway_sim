@@ -56,7 +56,7 @@ def main():
     goalSetAndStateMsg  = goalSetAndState()   
     msghighLevelBelief  = highLevelBelief()
 
-    option = 1
+    option = 3
     if option == 1:
         # Import MOMDP
         fileName  = sys.path[0]+'/pyFun/data/Qug_1/MOMDP_obj_8x8ug_2.pkl'
@@ -75,6 +75,15 @@ def main():
         # Init Environment
         loc        = (1,0,0,1)
         initBelief = [0.9, 0.3, 0.2,0.4]
+    elif option == 3:
+        # Import MOMDP
+        fileName  = sys.path[0]+'/pyFun/data/TOQ_1/MOMDP_obj_5x5_3.pkl'
+        pickle_in = open(fileName,"rb")
+        momdp     = pickle.load(pickle_in)
+
+        # Init Environment
+        loc        = (1,1,0)
+        initBelief = [0.9, 0.3, 0.2]
     else:
         gridWorld = '10x10ug'
         numObst = 3
@@ -93,6 +102,7 @@ def main():
 
     # Initialize MOMDP
     momdp.initZ(loc)
+    momdp.printLevel = 0
     bt = [momdp.initBelief(initBelief)]
     # Update MOMDP
     [action, coordXY, boxConstraints, boxNext] = momdp.updateMOMDP(t, xt[-1], bt[-1]);
@@ -143,7 +153,7 @@ def main():
 
                 # Update \alpha for obstacles: set \alpha = 1-prob beeing free
                 markerArray, obstBelief = updateObstacles(markerArray, momdp, bt[-1])
-                print("obstBelief: ",obstBelief)
+                # print("obstBelief: ",obstBelief)
                 # Publish the MarkerArray
                 publisher.publish(markerArray)
                 pSuccess = np.max(np.dot(momdp.J[t-1, xt[-1]].T, bt[-1])) # This is the probability of success

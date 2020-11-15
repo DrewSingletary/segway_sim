@@ -2,7 +2,7 @@
 <launch>
 	<arg name="teleop" default="joy" />
 	<arg name="filter" default="on"/>
-	<arg name="viz" default="off"/>
+	<arg name="viz" default="on"/>
 
 	<include file="$(find segway_sim)/launch/rviz.launch" if="$(eval viz == 'on')"/>
 
@@ -12,8 +12,8 @@
 			<param name="dt" value="0.001" />
 			<param name="umax" value="20.0" />
 			<param name="input_delay_ms" value="10.0"/>
-			<!-- <rosparam param="IC">[0.5, 4.5, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam> -->
-			<rosparam param="IC">[0.5, 7.5, 3.14, 0.0, 0.0, 0.0, 0.0]</rosparam>
+			<rosparam param="IC">[0.5, 4.5, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+			<!-- <rosparam param="IC">[0.5, 7.5, 3.14, 0.0, 0.0, 0.0, 0.0]</rosparam> -->
 			<!-- <rosparam param="IC">[0.5, 9.5, 1.57, 0.0, 0.0, 0.0, 0.0]</rosparam> -->
 		</node>
 
@@ -43,8 +43,8 @@
 			<param name="mpc_input_delay" value="-1.0"/>
 			<param name="dt" value="0.05"/>
 			<param name="x_start" value="0.5"/>
-			<!-- <param name="y_start" value="4.5"/> -->
-			<param name="y_start" value="7.5"/>
+			<param name="y_start" value="4.5"/>
+			<!-- <param name="y_start" value="7.5"/> -->
 			<!-- <param name="y_start" value="9.5"/> -->
 			<param name="theta_start" value="3.14"/>
 			<!-- IMPORTANT: the effect of the delay in the prediction horizon is a bit approximated when delay =! dt_mpc (if needed can be handles more carefully) -->

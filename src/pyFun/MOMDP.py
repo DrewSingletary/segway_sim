@@ -602,7 +602,7 @@ class MOMDP(object):
 		boxConstraints = self.getBoxConstr(xCurLst[0], xCurLst[1])
 		boxNext        = self.getBoxCurren(xCurLst[1])
 
-		print "xCurLst: ", xCurLst
+		# print "xCurLst: ", xCurLst
 		return action, coordXY, boxConstraints, boxNext
 
 	def computeBelief(self, bt, idx):
