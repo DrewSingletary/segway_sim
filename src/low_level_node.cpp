@@ -113,7 +113,7 @@ void optSolCallback(const segway_sim::optSol::ConstPtr msg)
 	flagNominalStatePub_ = 1;
 	dt_counter = 0;
 	h_counter = 0;
-	
+
 	optSol_ = *msg;
 	for (int j =0; j<N_read; j++){
 		for (int i = 0; i<nx; i++){
@@ -274,8 +274,13 @@ int main (int argc, char *argv[])
 			// 	uMPC[1] = uPred[1+h_counter*nu];
 			// }
 
-			inputTot_.inputVec[0] = lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0];
-			inputTot_.inputVec[1] = lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1];
+ 			if ((lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0] <= 15.1) and (lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0] >= -15.1) and (lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1] <= 15.1) and (lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1] >= -15.1) ) {
+				inputTot_.inputVec[0] = lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0];
+				inputTot_.inputVec[1] = lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1];
+			}else{
+				inputTot_.inputVec[0] = 0.0;
+				inputTot_.inputVec[1] = 0.0;
+			}
 			
 			lowLevelLog_.QPtime = ros_time_init.toSec()-ros_time_end.toSec();
 

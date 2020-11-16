@@ -2,8 +2,9 @@
 <launch>
 	<group ns="cyberpod">
 
-		<node name="momdp_python" pkg="segway_sim" type="momdp_python.py" output="screen">
+		<node name="momdp_node" pkg="segway_sim" type="momdp_node.py" output="screen">
 			<param name="testToTry" value="-1"/>
+			<param name="expFlag" value="1"/>
 		</node>
 	
 	</group>

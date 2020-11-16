@@ -5,8 +5,9 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 # bag = rosbag.Bag('/home/ugo/rosbag/_2020-08-11-18-41-20.bag')
-bag = rosbag.Bag('/home/drew/mpc_bags/test_1.bag')
-
+bag = rosbag.Bag('/home/drew/mpc_bags/hi.bag')
+x_start = 0.5
+y_start = 4.5
 dt_mpc = 0.05
 
 def getPred(optSol):
@@ -34,8 +35,30 @@ def getPred(optSol):
 
 	return xPred, yPred, thetaPred, vPred, thetaDotPred, psiPred, psiDotPred, u1Pred, u2Pred
 
+
+
+
 input = raw_input("Do you want to plot mid-level data? [y/n] ")
 if input == 'y':
+	
+	dt_ll = 1/800.0
+	
+	uTot = []
+	uCBF = []
+	h_val = []
+	t_lowLevel = []
+	for topic, msg, t in bag.read_messages(topics=['/cyberpod/ctrl_info']):
+		uTot.append([msg.data[1], msg.data[2]])
+		uTot.append([msg.data[3], msg.data[4]])
+		h_val.append(msg.data[5])
+		t_lowLevel.append((len(t_lowLevel))*dt_ll)
+
+	plt.figure()
+	plt.plot(t_lowLevel, h_val, label='u2')
+	plt.ylabel('barrier')
+	plt.legend()
+	plt.ylim(0,1)
+
 	## =======================================================
 	## Read and plot INPUT
 	## =======================================================
@@ -66,7 +89,7 @@ if input == 'y':
 	time_state = []
 	for topic, msg, t in bag.read_messages(topics=['/cyberpod/state']):
 		# state_t = [msg.x, msg.y, msg.theta, msg.v, msg.thetaDot, msg.psi, msg.psiDot]
-		state_t = [msg.state[0], msg.state[1], msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
+		state_t = [msg.state[0]+x_start, msg.state[1]+y_start, msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
 		state.append(state_t)
 		time_state.append((len(time_state))*0.001)
 
@@ -135,7 +158,7 @@ if input == 'y':
 	plt.subplot(716)
 	plt.plot(time_optSol[0:-1], error_array[:,5], label='x')
 	plt.subplot(717)
-	plt.plot(time_optSol[0:-1], error_array[:,6], label='x')
+	plt.plot(time_optSol[0:-1], error_array[:,6], label='prediction error')
 	plt.legend()
 
 	plt.figure()
@@ -268,7 +291,8 @@ if input == 'y':
 	time_lowLevel = []
 	error_lowLevel = []
 	dt_lowlevel = 0.001
-	for topic, msg, t in bag.read_messages(topics=['/cyberpod/lowLevelLog']):
+	for topic, msg, t in bag.read_messages(topics=['/cyberpod/ctrl_info_']):
+		pdb.set_trace()
 		X.append(msg.X)
 		Xn.append(msg.Xn)
 		error_lowLevel.append( (np.array(msg.X)-np.array(msg.Xn)).tolist() )

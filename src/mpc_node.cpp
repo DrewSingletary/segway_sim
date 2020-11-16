@@ -1,4 +1,6 @@
 #include "segway_sim/mpc_node.hpp"
+#include "ambercortex_ros/ctrl_info.h"
+
 
 using namespace std;
 using namespace ModelPredictiveControllerValFun;
@@ -14,6 +16,7 @@ ros::NodeHandle *nhParams_;
 ros::Subscriber sub_state_;
 ros::Subscriber sub_joy_;
 ros::Subscriber sub_goalSetAndState_;
+ros::Subscriber sub_ctrl_info_;
 
 ros::Publisher pub_inputAct_;
 ros::Publisher pub_stateNominal_;
@@ -67,34 +70,64 @@ ros::Time last_button;
 int btn_init, btn_run, btn_backup, btn_l1, btn_r1;
 
 //// Functions Definition
+
+void add_uint32_to_vec(std::vector<uint8_t> & vec, uint32_t ui) {
+  // add four bits to the end of a std::vector<uint8_t> representing a float
+  num32_t n32;
+  n32.ui = ui;
+  vec.push_back(n32.c[0]);
+  vec.push_back(n32.c[1]);
+  vec.push_back(n32.c[2]);
+  vec.push_back(n32.c[3]);
+}
+
+
 void sendToSegway(void)
 {
+	double u1;
+	double u2;
+
 	if (hardware_)
 	{
 		ambercortex_ros::cmd segway_msg;
-
 		segway_msg.data.push_back(MSG_CTRL);
 
-		if (inputAct_.inputVec[0] > 15.5)
-			inputAct_.inputVec[0] = 0.0;
-		if (inputAct_.inputVec[0] < -15.5)
-			inputAct_.inputVec[0] = 0.0;
-		if (inputAct_.inputVec[1] > 15.5)
-			inputAct_.inputVec[1] = 15.5;
-		if (inputAct_.inputVec[1] < -15.5)
-			inputAct_.inputVec[1] = 0.0;
-		add_float_to_vec(segway_msg.data, inputAct_.inputVec[0]);
-		add_float_to_vec(segway_msg.data, inputAct_.inputVec[1]);
+		for (int i = 0; i < N; i++)
+		{
+			if ((mpcValFun->uPred[nu*i] > 15.5) or (mpcValFun->uPred[nu*i] < -15.5) or (mpcValFun->uPred[nu*i+1] > 15.5) or (mpcValFun->uPred[nu*i+1] < -15.5) ){
+				u1 = 0.0;
+				u2 = 0.0;
+			}else{
+				u1 = mpcValFun->uPred[nu*i];
+				u2 = mpcValFun->uPred[nu*i+1];
+			}
+			add_float_to_vec(segway_msg.data, u1);
+			add_float_to_vec(segway_msg.data, u2);
+		}
 
-		add_float_to_vec(segway_msg.data, stateNominal_.x);
-		add_float_to_vec(segway_msg.data, stateNominal_.y);
+		// Send Nominal State
+		add_float_to_vec(segway_msg.data, stateNominal_.x-x_start);
+		add_float_to_vec(segway_msg.data, stateNominal_.y-y_start);
 		add_float_to_vec(segway_msg.data, stateNominal_.theta);
 		add_float_to_vec(segway_msg.data, stateNominal_.v);
 		add_float_to_vec(segway_msg.data, stateNominal_.thetaDot);
 		add_float_to_vec(segway_msg.data, stateNominal_.psi);
 		add_float_to_vec(segway_msg.data, stateNominal_.psiDot);
 
-		add_float_to_vec(segway_msg.data, 5.5);
+		// Send matrices
+		for (int i = 0; i < nx*nx; i++){
+			add_float_to_vec(segway_msg.data, mpcValFun->AlinearOut[i]);
+		}
+		for (int i = 0; i < nx*nu; i++){
+			add_float_to_vec(segway_msg.data, mpcValFun->BlinearOut[i]);
+		}
+		for (int i = 0; i < nx; i++){
+			add_float_to_vec(segway_msg.data, mpcValFun->ClinearOut[i]);
+		}
+
+		add_uint32_to_vec(segway_msg.data, stateCurrent_hw_.time);
+
+		segway_msg.chksum = compute_vec_chksum(segway_msg.data);
 
 		pub_inputAct_.publish(segway_msg);
 	}
@@ -123,6 +156,15 @@ void stateCallback_hw(const ambercortex_ros::state::ConstPtr msg)
 	stateCurrent_.psiDot = stateCurrent_hw_.state[6];
 }
 
+void ctrl_infoCallback_hw(const ambercortex_ros::ctrl_info::ConstPtr msg)
+{
+	num32_t mpc_time;
+	mpc_time.f = msg->data[0];
+	uint32_t delay;
+	delay = msg->time - mpc_time.ui;
+	ROS_INFO("mpc delay (ms): %f h: %f",(float)delay/1000,msg->data[1]);
+}
+
 void joy_cb(const sensor_msgs::Joy::ConstPtr msg)
 {
   ambercortex_ros::cmd msg_button;
@@ -131,7 +173,7 @@ void joy_cb(const sensor_msgs::Joy::ConstPtr msg)
   if (msg->buttons[btn_init]) {
     // request INIT
     msg_button.data.push_back(MODE_INIT);
-    for (int i = 0; i < 39; i++) {
+    for (int i = 0; i < 631; i++) {
       msg_button.data.push_back(0);
     }
     msg_button.chksum = compute_vec_chksum(msg_button.data);
@@ -140,7 +182,7 @@ void joy_cb(const sensor_msgs::Joy::ConstPtr msg)
   } else if (msg->buttons[btn_run]) {
     // request RUN
     msg_button.data.push_back(MODE_RUN);
-    for (int i = 0; i < 39; i++) {
+    for (int i = 0; i < 631; i++) {
       msg_button.data.push_back(0);
     }
     msg_button.chksum = compute_vec_chksum(msg_button.data);
@@ -149,7 +191,7 @@ void joy_cb(const sensor_msgs::Joy::ConstPtr msg)
   } else if (msg->buttons[btn_backup]) {
     // request BACKUP
     msg_button.data.push_back(MODE_BACKUP);
-    for (int i = 0; i < 39; i++) {
+    for (int i = 0; i < 631; i++) {
       msg_button.data.push_back(0);
     }
     msg_button.chksum = compute_vec_chksum(msg_button.data);
@@ -160,7 +202,13 @@ void joy_cb(const sensor_msgs::Joy::ConstPtr msg)
 
 void goalSetAndStateCallback(const segway_sim::goalSetAndState::ConstPtr msg)
 {
+	ROS_INFO("testing123");
+	ROS_INFO("testing123");
+	ROS_INFO("testing123");
+	ROS_INFO("testing123");
+	ROS_INFO("testing123");
 	flag_goalSetAndState_measurement = 1;
+	ROS_INFO("testing123");
 	goalSetAndState_ = *msg;
 }
 
@@ -181,6 +229,7 @@ int main (int argc, char *argv[])
 		ROS_INFO("Running on real Segway");
 		sub_joy_ = nh_->subscribe<sensor_msgs::Joy>("joy", 1, joy_cb);
 		sub_state_ = nh_->subscribe<ambercortex_ros::state>("state", 1, stateCallback_hw);
+		sub_ctrl_info_ = nh_->subscribe<ambercortex_ros::ctrl_info>("ctrl_info", 1, ctrl_infoCallback_hw);	
 		pub_inputAct_ = nh_->advertise<ambercortex_ros::cmd>("cmd", 1);
 	} else {
 		ROS_INFO("Running in simulation");
@@ -350,13 +399,27 @@ int main (int argc, char *argv[])
 		ros::Time tnow = ros::Time::now();
 		if ((ros::Duration(tnow-t0) > ros::Duration(time_after_delay_)) and (delay_ > 1))
 		{
-			if (delay_ != 0)
-				ROS_INFO("before: %i", ros::Time::now());
-			ros::Duration(.25).sleep();
-			if (delay_ != 0)
-				ROS_INFO("after: %i",ros::Time::now());
-			delay_ = 0;
+			
+			// if (delay_ != 0)
+			// 	ROS_INFO("before: %i", ros::Time::now());
+			// ros::Duration(.25).sleep();
+			// if (delay_ != 0)
+			// 	ROS_INFO("after: %i",ros::Time::now());
+			// delay_ = 0;
+
+			goalSetAndState_.x = 1.5;
+			goalSetAndState_.y = 4.0;
+			goalSetAndState_.xmin = 0;
+			goalSetAndState_.xmax = 2;
+			goalSetAndState_.ymin = 4;
+			goalSetAndState_.ymax = 5;
+			goalSetAndState_.highLevTime = 1;
+			goalSetAndState_.term_xmin = 1;
+			goalSetAndState_.term_xmax = 2;
+			goalSetAndState_.term_ymin = 4;
+			goalSetAndState_.term_ymax = 5;
 		}
+
 		//Get latest input
 		ros::spinOnce();
 

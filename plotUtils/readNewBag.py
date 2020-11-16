@@ -21,7 +21,7 @@ matplotlib.rcParams.update({'font.size': 22})
 # bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
 # bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
 
-bag = rosbag.Bag('/home/drew/rosbag/_2020-11-14-20-38-02.bag')
+bag = rosbag.Bag('/home/drew/rosbag/_2020-11-15-19-22-04.bag')
 bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-14-12-07-15.bag')
 
 
