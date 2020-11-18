@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <launch>
-	<group ns="cyberpod">
+	<group ns="cybercortex">
 		<node name="momdpMultiAgent_node" pkg="segway_sim" type="momdpMultiAgent_node.py" output="screen">
 			<param name="expFlag" value="1"/>
 			<param name="x_start_d" value="0.5"/>
-			<param name="y_start_d" value="3.5"/>
+			<param name="y_start_d" value="5.5"/>
 			<param name="x_start_s" value="0.5"/>
-			<param name="y_start_s" value="4.5"/>			
+			<param name="y_start_s" value="3.5"/>			
 		</node>
 	</group>
 </launch>

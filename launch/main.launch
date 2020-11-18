@@ -12,15 +12,15 @@
 			<param name="dt" value="0.001" />
 			<param name="umax" value="20.0" />
 			<param name="input_delay_ms" value="10.0"/>
-			<rosparam param="IC">[0.5, 4.5, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+			<rosparam param="IC">[0.5, 4.5, 3.14.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
 			<!-- <rosparam param="IC">[0.5, 7.5, 3.14, 0.0, 0.0, 0.0, 0.0]</rosparam> -->
 			<!-- <rosparam param="IC">[0.5, 9.5, 1.57, 0.0, 0.0, 0.0, 0.0]</rosparam> -->
 		</node>
 
 
-		<node name="momdp_node" pkg="segway_sim" type="momdp_node.py" output="screen">
+<!-- 		<node name="momdp_node" pkg="segway_sim" type="momdp_node.py" output="screen">
 			<param name="expFlag" value="0"/>
-		</node>
+		</node> -->
 
 
 		<node name="sensor" pkg="segway_sim" type="sensor_node" output="screen">
@@ -34,13 +34,13 @@
 		<node name="low_level" pkg="segway_sim" type="low_level_node" output="screen">
 			<param name="offset_angle" value="0.138324423615"/>
 			<param name="low_level_input_delay" value="0.0"/>
-			<param name="low_level_active" value="true"/>
+			<param name="low_level_active" value="false"/>
 		</node>
 
 		<node name="mpc" pkg="segway_sim" type="mpc_node" output="screen">
 			<param name="hardware" value="false"/>
 			<param name="offset_angle" value="0.138324423615"/>
-			<param name="mpc_input_delay" value="-1.0"/>
+			<param name="mpc_input_delay" value="-1"/>
 			<param name="dt" value="0.05"/>
 			<param name="x_start" value="0.5"/>
 			<param name="y_start" value="4.5"/>

@@ -15,6 +15,7 @@
 #include "segway_sim/cmdDrone.h"
 #include "ambercortex_ros/state.h"
 #include "ambercortex_ros/cmd.h"
+#include "ambercortex_ros/ctrl_info.h"
 #include "sensor_msgs/Joy.h"
 #include <fstream>
 

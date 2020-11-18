@@ -129,8 +129,15 @@ def main():
     # Initialize parameters for while loop
     initFlag = 0
     goalSetAndStateMsg = pubHighLevel(goalSetAndStateMsg, coordXY, boxConstraints, boxNext, t, forecast = True)
+    
+    if expFlag == 1:
+        for i in range(0,500):
+            rate.sleep()
 
-    print("ready to start!")
+    # goalSetAndState_pub.publish(goalSetAndStateMsg) # Uncomment this only for testing high-mid connection
+
+
+    print("ready to start!!!")
     while (not rospy.is_shutdown()):
         if statateMeasurements.state != []:
             if initFlag == 0: # Publish env position to initialize rviz

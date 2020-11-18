@@ -15,7 +15,7 @@ ros::Publisher pub_inputAct_;
 ros::Publisher pub_optSol_;
 
 segway_sim::stateDrone stateCurrent_;
-ambercortex_ros::state stateCurrent_hw_;
+ambercortex_ros::ctrl_info stateCurrent_hw_;
 segway_sim::cmdDrone inputAct_;
 ambercortex_ros::cmd inputAct_hw_;
 segway_sim::goalSetAndState goalSetAndState_;
@@ -36,6 +36,8 @@ double y_start;
 double vMax = {0.0};
 double error_max_[nx_] = {};
 double linearization_IC_[nx_] = {};
+bool initialized_ = false;
+bool takeoff_ = false;
 
 
 double e_x        = {};
@@ -46,6 +48,8 @@ double e_vby        = {};
 double enlarge    = {};
 double lowLevelActive = {};
 
+ros::Time to_init_;
+
 int flag_state_measurement = 0;
 int flag_goalSetAndState_measurement = 0;
 
@@ -54,13 +58,68 @@ MPCValFun *mpcValFun; // Define MPC object as a pointer
 bool hardware_ = false;
 ros::Time last_button;
 int btn_init, btn_run, btn_backup, btn_l1, btn_r1;
+double uz_ = 0;
+
+void add_uint32_to_vec(std::vector<uint8_t> & vec, uint32_t ui) {
+  // add four bits to the end of a std::vector<uint8_t> representing a float
+  num32_t n32;
+  n32.ui = ui;
+  vec.push_back(n32.c[0]);
+  vec.push_back(n32.c[1]);
+  vec.push_back(n32.c[2]);
+  vec.push_back(n32.c[3]);
+}
 
 //// Functions Definition
 void sendToDrone(void)
 {
 	if (hardware_)
 	{
-		pub_inputAct_.publish(inputAct_);				
+		ambercortex_ros::cmd drone_msg;
+		drone_msg.data.push_back(MSG_CTRL);
+
+			// inputAct_.vDes[0] = mpcValFun->xPred[1*nx+2];
+			// inputAct_.vDes[1] = mpcValFun->xPred[1*nx+3];
+		double u1 = 0; double u2 = 0;
+
+		for (int i = 0; i < 1; i++)
+		{
+			if (  !takeoff_ or (mpcValFun->xPred[1*nx+2] > 1.1) or (mpcValFun->xPred[1*nx+2] < -1.1) or (mpcValFun->xPred[1*nx+3] > 1.1) or (mpcValFun->xPred[1*nx+3] < -1.1) ){
+				u1 = 0.0;
+				u2 = 0.0;
+			}else{
+				u1 = mpcValFun->xPred[1*nx+2];
+				u2 = mpcValFun->xPred[1*nx+3];
+			}
+			
+		}
+		if (!initialized_)
+			to_init_ = ros::Time::now();
+
+		// Send Nominal State
+
+		if (ros::Time::now() > (to_init_ + ros::Duration(4)) && ros::Time::now() < (to_init_ + ros::Duration(7)))
+			{uz_ = 0;
+			u1 = 0;
+			u2 = 0;
+			takeoff_ = true;}
+		add_float_to_vec(drone_msg.data, u1);
+		add_float_to_vec(drone_msg.data, u2);
+		add_float_to_vec(drone_msg.data, uz_);
+		add_float_to_vec(drone_msg.data, 0.0);
+		add_float_to_vec(drone_msg.data, 0.0);
+		add_float_to_vec(drone_msg.data, 0.0);
+		add_float_to_vec(drone_msg.data, 0.0);
+		add_float_to_vec(drone_msg.data, 0.0);
+		add_float_to_vec(drone_msg.data, 0.0);
+
+		// Send matrices
+
+		add_uint32_to_vec(drone_msg.data, stateCurrent_hw_.time);
+
+		drone_msg.chksum = compute_vec_chksum(drone_msg.data);
+		if (initialized_)
+			pub_inputAct_.publish(drone_msg);				
 	}
 	else {
 		pub_inputAct_.publish(inputAct_);				
@@ -73,13 +132,21 @@ void stateCallback(const segway_sim::stateDrone::ConstPtr msg)
 	stateCurrent_ = *msg;
 }
 
-void stateCallback_hw(const ambercortex_ros::state::ConstPtr msg)
+void stateCallback_hw(const ambercortex_ros::ctrl_info::ConstPtr msg)
 {
 	flag_state_measurement = 1;
 	stateCurrent_hw_ = *msg;
 	// DO TO
-	stateCurrent_.x = stateCurrent_hw_.state[0];
-	stateCurrent_.y = stateCurrent_hw_.state[1];
+	stateCurrent_.x = stateCurrent_hw_.data[0];
+	stateCurrent_.y = stateCurrent_hw_.data[1];
+	stateCurrent_.vbx = stateCurrent_hw_.data[3];
+	stateCurrent_.vby = stateCurrent_hw_.data[4];
+	if (initialized_)
+		uz_ = fmin(.5,(1.4 - stateCurrent_hw_.data[2])) - 1*stateCurrent_hw_.data[5];
+	else 
+		uz_ = -.2;
+	// cout << "uz to send: " << uz_ << endl;
+	
 	// stateCurrent_.theta = stateCurrent_hw_.state[2];
 	// stateCurrent_.v = stateCurrent_hw_.state[3];
 	// stateCurrent_.thetaDot = stateCurrent_hw_.state[4];
@@ -94,6 +161,19 @@ void goalSetAndStateCallback(const segway_sim::goalSetAndState::ConstPtr msg)
 	cout <<" ===== Drone Goal Updated"<< endl;
 	cout << "goalSetAndState_.x: " << goalSetAndState_.x << endl;
 	cout << "goalSetAndState_.y: " << goalSetAndState_.y << endl;
+	if (initialized_ == false) {
+		ambercortex_ros::cmd msg_button;
+  		msg_button.data.push_back(MSG_MODE);
+	    msg_button.data.push_back(MODE_RUN);
+		cout <<" ===== Going into run mode!!! "<< endl;
+	    for (int i = 0; i < 39; i++) {
+	      msg_button.data.push_back(0);
+	    }
+	    msg_button.chksum = compute_vec_chksum(msg_button.data);
+	    pub_inputAct_.publish(msg_button);
+
+	}
+	initialized_ = true;
 }
 
 int main (int argc, char *argv[])
@@ -112,7 +192,7 @@ int main (int argc, char *argv[])
 	{
 		ROS_INFO("Running on real Drone");
 		// TO DO 
-		sub_state_ = nh_->subscribe<ambercortex_ros::state>("state", 1, stateCallback_hw);
+		sub_state_ = nh_->subscribe<ambercortex_ros::ctrl_info>("ctrl_info", 1, stateCallback_hw);
 		pub_inputAct_ = nh_->advertise<ambercortex_ros::cmd>("cmd", 1);
 	} else {
 		ROS_INFO("Running in simulation");
@@ -189,8 +269,8 @@ int main (int argc, char *argv[])
 	inputAct_.vDes[0] = 0.0;
 	inputAct_.vDes[1] = 0.0;
 
-	goalSetAndStateVector[0]  = goalSetAndState_.x;
-	goalSetAndStateVector[1]  = goalSetAndState_.y;
+	goalSetAndStateVector[0]  = goalSetAndState_.x*hardware_;
+	goalSetAndStateVector[1]  = goalSetAndState_.y*hardware_;
 	goalSetAndStateVector[2]  = goalSetAndState_.xmin;
 	goalSetAndStateVector[3]  = goalSetAndState_.xmax;
 	goalSetAndStateVector[4]  = goalSetAndState_.ymin;

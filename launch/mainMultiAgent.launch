@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 	<arg name="teleop" default="joy" />
-   <arg name="viz" default="off"/>
+   <arg name="viz" default="on"/>
    <arg name="filter" default="off"/>
 
 	<include file="$(find segway_sim)/launch/rvizMultiAgent.launch" if="$(eval viz == 'on')"/>
@@ -10,7 +10,7 @@
 
 		<node name="integrator_drone" pkg="uav_sim_ros" type="integrator_node" output="screen">
 			<param name="dt" value="0.001" />
-			<rosparam param="IC">[0.5, 6.5, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+			<rosparam param="IC">[0.5, 5.5, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
 		</node>
 
 		<node name="safety_filter" pkg="uav_sim_ros" type="safety_filter_node" output="screen">
@@ -68,7 +68,7 @@
 			<param name="umax" value="20.0" />
 			<param name="input_delay_ms" value="10.0"/>
 			<!-- IMPORTANT: The initial condition is hard coded in the MPC file -->
-			<rosparam param="IC">[0.5, 6.5, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+			<rosparam param="IC">[0.5, 3.5, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
 		</node>
 
 		<node name="low_level" pkg="segway_sim" type="low_level_node" output="screen">
@@ -103,7 +103,7 @@
 
 			<!-- <param name="y_start" value="1.5"/> -->
 			<!-- <param name="y_start" value="1.5"/> -->
-			<param name="y_start" value="6.5"/>
+			<param name="y_start" value="3.5"/>
 			<!-- <param name="theta_start" value="3.14"/> -->
 			
 			<!-- IMPORTANT: the effect of the delay in the prediction horizon is a bit approximated when delay =! dt_mpc (if needed can be handles more carefully) -->
@@ -121,25 +121,25 @@
 		<node name="momdpMultiAgent_node" pkg="segway_sim" type="momdpMultiAgent_node.py" output="screen">
 			<param name="expFlag" value="0"/>
 			<param name="x_start_d" value="0.5"/>
-			<param name="y_start_d" value="6.5"/>
+			<param name="y_start_d" value="5.5"/>
 			<param name="x_start_s" value="0.5"/>
-			<param name="y_start_s" value="6.5"/>
+			<param name="y_start_s" value="3.5"/>
 			
 		</node>
 
 		
-<!-- 		<node name="mpc_drone" pkg="segway_sim" type="mpc_drone_node" output="screen">
+		<node name="mpc_drone" pkg="segway_sim" type="mpc_drone_node" output="screen">
 			<param name="hardware" value="false"/>
 			<param name="mpc_input_delay" value="-1.0"/>
 			<param name="x_start" value="0.5"/>
-			<param name="y_start" value="6.5"/>
+			<param name="y_start" value="5.5"/>
 			<param name="e_x"        type="double" value="0.04"/>
 			<param name="e_vbx"        type="double" value="0.04"/>
 			<param name="e_y"    type="double" value="0.1"/>
 			<param name="e_vby"        type="double" value="0.3"/>
 
 			<param name="enlarge"    type="double" value="0.3"/>		
-		</node> -->
+		</node>
 
 <!-- 		<node name="drone_mpc_python" pkg="segway_sim" type="drone_mpc_python.py" output="screen">
 			<param name="x_start_d" value="0.5"/>

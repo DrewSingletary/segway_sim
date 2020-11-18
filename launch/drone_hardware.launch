@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+	<group ns="cybercortex">
+
+		<node name="mpc_drone" pkg="segway_sim" type="mpc_drone_node" output="screen">
+			<param name="hardware" value="true"/>
+			<param name="mpc_input_delay" value="-1.0"/>
+			<param name="x_start" value="0.5"/>
+			<param name="y_start" value="5.5"/>
+			<param name="e_x"        type="double" value="0.04"/>
+			<param name="e_vbx"        type="double" value="0.04"/>
+			<param name="e_y"    type="double" value="0.1"/>
+			<param name="e_vby"        type="double" value="0.3"/>
+
+			<param name="enlarge"    type="double" value="0.3"/>		
+		</node>
+	
+	</group>
+</launch>

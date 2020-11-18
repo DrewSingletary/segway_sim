@@ -132,6 +132,7 @@ void sendToSegway(void)
 		pub_inputAct_.publish(segway_msg);
 	}
 	else {
+		// cout << inputAct_.inputVec[0] << " , " << inputAct_.inputVec[1] << endl;
 		pub_inputAct_.publish(inputAct_);				
 		pub_stateNominal_.publish(stateNominal_);
 	}
@@ -202,13 +203,8 @@ void joy_cb(const sensor_msgs::Joy::ConstPtr msg)
 
 void goalSetAndStateCallback(const segway_sim::goalSetAndState::ConstPtr msg)
 {
-	ROS_INFO("testing123");
-	ROS_INFO("testing123");
-	ROS_INFO("testing123");
-	ROS_INFO("testing123");
-	ROS_INFO("testing123");
+	ROS_INFO("New highlevel goal");
 	flag_goalSetAndState_measurement = 1;
-	ROS_INFO("testing123");
 	goalSetAndState_ = *msg;
 }
 
@@ -223,6 +219,8 @@ int main (int argc, char *argv[])
 
 	nhParams_->param<bool>("hardware", hardware_,false);
 
+	sub_goalSetAndState_   = nh_->subscribe<segway_sim::goalSetAndState>("goalSetAndState", 1, goalSetAndStateCallback);
+
 	// Init pubs, subs and srvs
 	if (hardware_)
 	{
@@ -236,7 +234,7 @@ int main (int argc, char *argv[])
 		sub_state_ = nh_->subscribe<segway_sim::state>("state_true", 1, stateCallback);
 		pub_inputAct_ = nh_->advertise<segway_sim::input>("mpc_input", 1);
 	}
-	sub_goalSetAndState_   = nh_->subscribe<segway_sim::goalSetAndState>("goalSetAndState", 1, goalSetAndStateCallback);
+	
 	pub_stateNominal_ = nh_->advertise<segway_sim::state>("state_nominal", 1);
 	pub_optSol_       = nh_->advertise<segway_sim::optSol>("optimal_sol", 1);
 	pub_linearMat     = nh_->advertise<segway_sim::linearMatrices>("linear_matrices", 1);
@@ -387,6 +385,7 @@ int main (int argc, char *argv[])
 	stateNominal_.thetaDot = 0.0;
 	stateNominal_.psi      = 0.0 + xeq[5];
 	stateNominal_.psiDot   = 0.0;	
+	stateNominal_.time = stateCurrent_.time;
 
 	int horizonCounter = 0;
 
@@ -407,17 +406,17 @@ int main (int argc, char *argv[])
 			// 	ROS_INFO("after: %i",ros::Time::now());
 			// delay_ = 0;
 
-			goalSetAndState_.x = 1.5;
-			goalSetAndState_.y = 4.0;
-			goalSetAndState_.xmin = 0;
-			goalSetAndState_.xmax = 2;
-			goalSetAndState_.ymin = 4;
-			goalSetAndState_.ymax = 5;
-			goalSetAndState_.highLevTime = 1;
-			goalSetAndState_.term_xmin = 1;
-			goalSetAndState_.term_xmax = 2;
-			goalSetAndState_.term_ymin = 4;
-			goalSetAndState_.term_ymax = 5;
+			// goalSetAndState_.x = 1.5;
+			// goalSetAndState_.y = 4.0;
+			// goalSetAndState_.xmin = 0;
+			// goalSetAndState_.xmax = 2;
+			// goalSetAndState_.ymin = 4;
+			// goalSetAndState_.ymax = 5;
+			// goalSetAndState_.highLevTime = 1;
+			// goalSetAndState_.term_xmin = 1;
+			// goalSetAndState_.term_xmax = 2;
+			// goalSetAndState_.term_ymin = 4;
+			// goalSetAndState_.term_ymax = 5;
 		}
 
 		//Get latest input
@@ -524,7 +523,7 @@ int main (int argc, char *argv[])
 
 			}
 
-			if ( horizonCounter == 2){
+			if ( horizonCounter == 1){
 				mpcValFun->updateHorizon();
 				horizonCounter = 0;
 			} else {
@@ -539,7 +538,8 @@ int main (int argc, char *argv[])
 			stateNominal_.v        = mpcValFun->xPred[3];
 			stateNominal_.thetaDot = mpcValFun->xPred[4];
 			stateNominal_.psi      = mpcValFun->xPred[5] + xeq[5];
-			stateNominal_.psiDot   = mpcValFun->xPred[6];			
+			stateNominal_.psiDot   = mpcValFun->xPred[6];	
+			stateNominal_.time = stateCurrent_.time;	
 
 
 			if (delay_ms_ > 0){

@@ -45,19 +45,21 @@ def main():
 
     if expFlag == 1:
         from ambercortex_ros.msg import state
+        from ambercortex_ros.msg import ctrl_info
+        droneStateMeasurements = DroneStateMeasurements(x_start_d, y_start_d, expFlag, ctrl_info) # this object read the true state (not the estimated)
     else:
         from segway_sim.msg import state
+        droneStateMeasurements = DroneStateMeasurements(x_start_d, y_start_d, expFlag, stateDrone) # this object read the true state (not the estimated)
 
     # Initialize subscriber and publisher
     stateMeasurements      = StateMeasurements(x_start_s, y_start_s, expFlag, state) # this object read the true state (not the estimated)
-    droneStateMeasurements = DroneStateMeasurements(x_start_d, y_start_d, expFlag) # this object read the true state (not the estimated)
     
     publisher                = rospy.Publisher('/segway_sim/visualization_marker_array', MarkerArray)
     publisherBelief          = rospy.Publisher('/segway_sim/highLevelBelief', highLevelBelief)
     markerArray              = MarkerArray()
-    goalSetAndState_pub      = rospy.Publisher('goalSetAndState', goalSetAndState, queue_size=1)
+    goalSetAndState_pub      = rospy.Publisher('/cyberpod/goalSetAndState', goalSetAndState, queue_size=1)
     goalSetAndStateMsg       = goalSetAndState()   
-    goalDroneSetAndState_pub = rospy.Publisher('droneGoalSetAndState', goalSetAndState, queue_size=1)
+    goalDroneSetAndState_pub = rospy.Publisher('/cybercortex/droneGoalSetAndState', goalSetAndState, queue_size=1)
     goalDroneSetAndStateMsg  = goalSetAndState()   
     msghighLevelBelief       = highLevelBelief()
 
@@ -84,6 +86,7 @@ def main():
     else:
         loc        = (0, 0)
         initBelief = [0.1, 0.9]
+        # initBelief = [0.9, 0.9]
     ts          = 0
     verbose    = 0
     at = []
@@ -107,8 +110,11 @@ def main():
     goalUpdate    = False
     momdp_initrialize = False
     print('=================== Readdy to start')
+    for i in range(0,500):
+        rate.sleep()
+
     while (not rospy.is_shutdown()):
-        if stateMeasurements.state != []:
+        if droneStateMeasurements.state != []:
             # read measurement
             xCurr = stateMeasurements.state
             xDroneCurr = droneStateMeasurements.state
@@ -142,7 +148,7 @@ def main():
                 publisher.publish(markerArray)
             
             # Check if goal reached or reached the goal cell
-            if (deploySegway==True) and segwayAgent.checkGoalReached(xCurr):
+            if (deploySegway==True) and segwayAgent.checkGoalReached(xCurr, 0):
                 print("Segway State: ", segwayAgent.xt[-1])
                 goalUpdate = True
                 segwayAgent.Update(forecast=True)
@@ -154,7 +160,7 @@ def main():
                     decisionMaker = True
                     bt.append(segwayAgent.bt[-1])
 
-            elif (deployDrone==True) and droneAgent.checkGoalReached(xDroneCurr):
+            elif (deployDrone==True) and droneAgent.checkGoalReached(xDroneCurr, 0.25):
                 print("Drone State: ", droneAgent.xt[-1])
                 goalUpdate = True
                 droneAgent.Update(forecast=True)
@@ -202,8 +208,8 @@ class Agent():
         self.xt  = [self.momdp.getHighLevelState(pos)]
 
 
-    def checkGoalReached(self, x):
-        return (x[0] >= self.boxNext[0]) and (x[0] <= self.boxNext[1]) and (x[1] >= self.boxNext[2]) and (x[1] <= self.boxNext[3])
+    def checkGoalReached(self, x, tolerance = 0):
+        return (x[0] >= self.boxNext[0] - tolerance) and (x[0] <= self.boxNext[1] + tolerance) and (x[1] >= self.boxNext[2] - tolerance) and (x[1] <= self.boxNext[3] + tolerance)
 
     def Update(self, forecast=True):
         [action, coordXY, boxConstraints, self.boxNext] = self.momdp.updateMOMDP(self.t, self.xt[-1], self.bt[-1])
@@ -320,31 +326,33 @@ class StateMeasurements():
         self.x_start = x_start
         self.y_start = y_start
         if expFlag == 1:
-            rospy.Subscriber("state", state, self.state_callback_exp)
+            rospy.Subscriber("/cyberpod/state", state, self.state_callback_exp)
         else:
             rospy.Subscriber("state_true", state, self.state_callback_sim)
 
     def state_callback_exp(self, msg):
         self.state = [msg.state[0]+self.x_start, msg.state[1]+self.y_start, msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
+        # self.state = [self.x_start, self.y_start, msg.state[2], msg.state[3], msg.state[4], msg.state[5], msg.state[6]]
 
     def state_callback_sim(self, msg):
         self.state = [msg.x, msg.y, msg.theta, msg.v, msg.thetaDot, msg.psi, msg.psiDot]
 
 class DroneStateMeasurements():
-    def __init__(self, x_start_d, y_start_d, expFlag):
+    def __init__(self, x_start_d, y_start_d, expFlag, ctrl_info):
         self.x_start = x_start_d
         self.y_start = y_start_d
 
         self.expFlag = expFlag
         self.state = []
+        self.init = False
 
         if expFlag == 1:
-            rospy.Subscriber("/uav_sim_ros/state", stateDrone, self.droneState_callback_exp)
+            rospy.Subscriber("/cybercortex/ctrl_info", ctrl_info, self.droneState_callback_exp)
         else:
             rospy.Subscriber("/uav_sim_ros/state", stateDrone, self.droneState_callback)
 
     def droneState_callback_exp(self, msg):
-        self.state = np.array([msg.x + self.x_start, msg.y + self.y_start, msg.vbx, msg.vby])
+        self.state = np.array([msg.data[0] + self.x_start, msg.data[1] + self.y_start, msg.data[3], msg.data[4]])
 
     def droneState_callback(self, msg):
         self.state = np.array([msg.x, msg.y, msg.vbx, msg.vby])

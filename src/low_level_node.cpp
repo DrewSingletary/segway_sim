@@ -25,6 +25,8 @@ segway_sim::lowLevelLog lowLevelLog_;
 ros::Time ros_time_init;
 ros::Time ros_time_end;
 
+double dt_delay_mod;
+
 using namespace std;
 double offset_angle_;
 double dt_;
@@ -91,13 +93,13 @@ void stateNominalCallback(const segway_sim::state::ConstPtr msg)
 	flagNominalStatePub_ = 1;
 
 	stateNominal_ = *msg;
-	Xn[0] = stateNominal_.x;
-	Xn[1] = stateNominal_.y;
-	Xn[2] = stateNominal_.theta;
-	Xn[3] = stateNominal_.v;
-	Xn[4] = stateNominal_.thetaDot;
-	Xn[5] = stateNominal_.psi;
-	Xn[6] = stateNominal_.psiDot;
+	// Xn[0] = stateNominal_.x;
+	// Xn[1] = stateNominal_.y;
+	// Xn[2] = stateNominal_.theta;
+	// Xn[3] = stateNominal_.v;
+	// Xn[4] = stateNominal_.thetaDot;
+	// Xn[5] = stateNominal_.psi;
+	// Xn[6] = stateNominal_.psiDot;
 
 	XnTest[0] = stateNominal_.x;
 	XnTest[1] = stateNominal_.y;
@@ -199,7 +201,7 @@ int main (int argc, char *argv[])
 
 	// Init pubs, subs and srvs
 	sub_optSol_        = nh_->subscribe<segway_sim::optSol>("optimal_sol", 1, optSolCallback);
-	// sub_state_nominal_ = nh_->subscribe<segway_sim::state>("state_nominal", 1, stateNominalCallback);
+	sub_state_nominal_ = nh_->subscribe<segway_sim::state>("state_nominal", 1, stateNominalCallback);
 
 	sub_state_true_    = nh_->subscribe<segway_sim::state>("state_true", 1, stateTrueCallback);
 	sub_linear_mat_    = nh_->subscribe<segway_sim::linearMatrices>("linear_matrices", 1, linearMatricesCallback);
@@ -257,63 +259,93 @@ int main (int argc, char *argv[])
 			// apply input (note that at time t we compute the input for time t+1)
 			
 			ros_time_init = ros::Time::now();
-			cbf->setIC(X, Xn);
-			cbf->setMatrices(Alinear, Blinear, Clinear);
-			// Solve CBF-CLF QP
-			uMPC[0] = inputMpc_.inputVec[0]; //inputMpcBuffer1_[int((delay_ms_/1000)/dt_)- 1];
-			uMPC[1] = inputMpc_.inputVec[1]; //inputMpcBuffer2_[int((delay_ms_/1000)/dt_)- 1];
- 			cbf->evaluateCBFqpConstraintMatrices(uMPC, 0);
- 			
- 			cbf->solveQP(0);
- 		// 	if (dt_counter < dt_mpc){
- 		// 		cbf->solveQP(0);
-			// }else{
-			// 	cbf->uCBF[0] = 0;
-			// 	cbf->uCBF[1] = 0;
-			// 	uMPC[0] = uPred[0+h_counter*nu];
-			// 	uMPC[1] = uPred[1+h_counter*nu];
-			// }
+ 			double dt_delay = (double) (stateTrue_.time -stateNominal_.time);
+ 			// ROS_INFO("dt: %f",stateTrue_.time-stateNominal_.time);
 
- 			if ((lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0] <= 15.1) and (lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0] >= -15.1) and (lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1] <= 15.1) and (lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1] >= -15.1) ) {
-				inputTot_.inputVec[0] = lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0];
-				inputTot_.inputVec[1] = lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1];
-			}else{
-				inputTot_.inputVec[0] = 0.0;
-				inputTot_.inputVec[1] = 0.0;
+ 			if (dt_delay > dt_mpc){
+				if (h_counter*dt_mpc < dt_delay){
+					h_counter = h_counter + 1;
+				}				
 			}
+			uMPC[0] = uPred[0+h_counter*nu];
+			uMPC[1] = uPred[1+h_counter*nu];
+ 			
+
+ 		// 	if ((lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0] <= 15.1) and (lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0] >= -15.1) and (lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1] <= 15.1) and (lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1] >= -15.1) ) {
+			// 	inputTot_.inputVec[0] = lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0];
+			// 	inputTot_.inputVec[1] = lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1];
+			// }else{
+			// 	inputTot_.inputVec[0] = 0.0;
+			// 	inputTot_.inputVec[1] = 0.0;
+			// }
 			
 			lowLevelLog_.QPtime = ros_time_init.toSec()-ros_time_end.toSec();
 
+			double Xtraj[nx] = {};
+			// set Xtraj to desired state
+			for (int i = 0; i <nx; i++){
+				Xtraj[i] = Xn[i];
+			}
+
+			// Integreate for delay
+			for (int k = 0; k < (int) ((stateTrue_.time-stateNominal_.time)/dt_); k++ ){
+				// One step
+				for (int i = 0; i < nx; i++){
+					Xn_next[i] = 0.0;
+					for (int j = 0; j < nx; ++j)
+					{
+						if (i==j){
+							Xn_next[i] = Xn_next[i] + Xtraj[j] + (Alinear[i*nx + j] * (Xtraj[j]-xeq[j]) )*dt_;
+						}else{
+							Xn_next[i] = Xn_next[i] + (Alinear[i*nx + j] * (Xtraj[j]-xeq[j]) )*dt_;
+						}
+					}
+					int index_mpc = (int) (k*dt_/dt_mpc);
+					Xn_next[i] = Xn_next[i] + (Blinear[i*nu + 0] * uPred[0+nu*index_mpc] + Blinear[i*nu + 1] * uPred[1+nu*index_mpc] + Clinear[i])*dt_;
+				}
+
+				// Update for next step
+				for (int i = 0; i <nx; i++){
+					Xtraj[i] = Xn_next[i];
+				}
+
+			}
+
+			// for (int i = 0; i < nx; i++)
+			// 	ROS_INFO("(%i) (%f) state,nominal,traj (%f,%f,%f)",i,dt_delay,X[i],Xn[i],Xtraj[i]);
+
+			double Kp_psi = 150.1612;
+			double Kp_v = 44.6528;
+			double Kd_psi = 37.6492;
+			double Kd_theta = 1;
+			double Kp_theta = 1;
+
+			double uTracking[2];
+			uTracking[0] = Kp_psi*(X[5] - Xtraj[5]) + Kd_psi*(X[6] - Xtraj[6]) +Kp_v*(X[3] - Xtraj[3]);
+			uTracking[1] = Kp_psi*(X[5] - Xtraj[5]) + Kd_psi*(X[6] - Xtraj[6]) +Kp_v*(X[3] - Xtraj[3]);
+
+			double BT = 0;
+			uTracking[0] = uTracking[0]/2 + BT/2;
+			uTracking[1] = uTracking[1]/2 - BT/2;
+
+			cbf->setIC(X, Xtraj);
+			cbf->setMatrices(Alinear, Blinear, Clinear);
+			// Solve CBF-CLF QP
+			// cbf->uDes[0] = uTracking[0];
+			// cbf->uDes[1] = uTracking[1];
+			cbf->V_alpha[0] = 10000;
+			cbf->h_alpha[0] = 1;
+ 			cbf->evaluateCBFqpConstraintMatrices(uMPC, 0);
+ 			cbf->solveQP(0);
+
+			// inputTot_.inputVec[0] = uPred[0] + uTracking[0];
+			// inputTot_.inputVec[1] = uPred[1] + uTracking[1];
+			inputTot_.inputVec[0] = uPred[0];// + cbf->uCBF[0];
+			inputTot_.inputVec[1] = uPred[1];// + cbf->uCBF[1];
+
+
 			pub_inputAct_.publish(inputTot_);
 
-
-			for (int i = 0; i < nx; i++){
-				Xn_next[i] = 0.0;
-				for (int j = 0; j < nx; ++j)
-				{
-					if (i==j){
-						Xn_next[i] = Xn_next[i] + Xn[j] + (Alinear[i*nx + j] * (Xn[j]-xeq[j]) )*dt_;
-					}else{
-						Xn_next[i] = Xn_next[i] + (Alinear[i*nx + j] * (Xn[j]-xeq[j]) )*dt_;
-					}
-				}
-				Xn_next[i] = Xn_next[i] + (Blinear[i*nu + 0] * inputMpc_.inputVec[0] + Blinear[i*nu + 1] * inputMpc_.inputVec[1] + Clinear[i])*dt_;
-			}
-
-			if (dt_counter > dt_mpc){
-
-				if (h_counter*dt_mpc < dt_counter){
-					h_counter = h_counter + 1;
-					inputMpc_.inputVec[0] = uPred[0+h_counter*nu];
-					inputMpc_.inputVec[1] = uPred[1+h_counter*nu];
-					uMPC[0] = uPred[0+h_counter*nu];
-					uMPC[0] = uPred[1+h_counter*nu];
-
-					// cout << "inputMpc_.inputVec[0]: " << inputMpc_.inputVec[0] << endl;
-					// cout << "inputMpc_.inputVec[0]: " << inputMpc_.inputVec[1] << endl;
-					// cout << "=================================== h_counter: " << h_counter << endl;
-				}				
-			}
 
 			// if (dt_counter <= dt_mpc){
 			// 	h_counter = 0;
@@ -365,9 +397,7 @@ int main (int argc, char *argv[])
 			// if (dt_counter > dt_mpc)
 			// 	cout << "dt_counter: " << dt_counter << endl;
 
-			for (int i = 0; i < nx; i++){
-				Xn[i] = Xn_next[i];
-			}
+
 
 			for (int i = 0 ; i<nx; i++){
 				lowLevelLog_.X[i] = cbf->X[i];

@@ -13,7 +13,7 @@ from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 matplotlib.rcParams.update({'font.size': 22})
 
 # bag = rosbag.Bag('/home/drew/rosbag/_2020-10-09-17-21-59.bag')
-bag = rosbag.Bag('/home/ugo/rosbag/_2020-11-13-14-45-28.bag')
+bag = rosbag.Bag('/home/drew/rosbag/_2020-11-17-18-43-01.bag')
 
 option = 1
 

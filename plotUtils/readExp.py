@@ -5,7 +5,9 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 # bag = rosbag.Bag('/home/ugo/rosbag/_2020-08-11-18-41-20.bag')
-bag = rosbag.Bag('/home/drew/mpc_bags/hi.bag')
+bag = rosbag.Bag('/home/drew/mpc_bags/b.test.bag')
+
+
 x_start = 0.5
 y_start = 4.5
 dt_mpc = 0.05
@@ -57,7 +59,7 @@ if input == 'y':
 	plt.plot(t_lowLevel, h_val, label='u2')
 	plt.ylabel('barrier')
 	plt.legend()
-	plt.ylim(0,1)
+	plt.ylim(-10,1)
 
 	## =======================================================
 	## Read and plot INPUT

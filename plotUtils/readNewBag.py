@@ -21,8 +21,11 @@ matplotlib.rcParams.update({'font.size': 22})
 # bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
 # bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
 
-bag = rosbag.Bag('/home/drew/rosbag/_2020-11-15-19-22-04.bag')
-bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-14-12-07-15.bag')
+bag = rosbag.Bag('/home/drew/rosbag/_2020-11-17-15-07-22.bag')
+
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-13-05-14.bag')
+bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-14-54-28.bag')
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-13-01-37.bag')
 
 
 dt_mpc = 0.05
@@ -38,7 +41,7 @@ opt = 1
 if opt == 1:
 	# fileName = sys.path[0]+'/../src/pyFun/data/Qug_1/MOMDP_obj_8x8ug_2.pkl'
 	# fileName = sys.path[0]+'/../src/pyFun/TOQug_1/MOMDP_obj_10x10ug_2.pkl'
-	fileName = sys.path[0]+'/../src/pyFun/data/TOQug_1/MOMDP_obj_5x5_3.pkl'
+	fileName = sys.path[0]+'/../src/pyFun/data/TOQ_1/MOMDP_obj_5x5_3.pkl'
 
 	pickle_in = open(fileName,"rb")
 	momdp = pickle.load(pickle_in)
