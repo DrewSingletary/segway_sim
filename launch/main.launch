@@ -18,9 +18,9 @@
 		</node>
 
 
-<!-- 		<node name="momdp_node" pkg="segway_sim" type="momdp_node.py" output="screen">
+		<node name="momdp_node" pkg="segway_sim" type="momdp_node.py" output="screen">
 			<param name="expFlag" value="0"/>
-		</node> -->
+		</node>
 
 
 		<node name="sensor" pkg="segway_sim" type="sensor_node" output="screen">
@@ -34,7 +34,9 @@
 		<node name="low_level" pkg="segway_sim" type="low_level_node" output="screen">
 			<param name="offset_angle" value="0.138324423615"/>
 			<param name="low_level_input_delay" value="0.0"/>
-			<param name="low_level_active" value="false"/>
+			<param name="low_level_active" value="true"/>
+			<param name="clf_active" value="false"/>
+			<param name="tracking_active" value="false"/>
 		</node>
 
 		<node name="mpc" pkg="segway_sim" type="mpc_node" output="screen">
@@ -59,7 +61,7 @@
 			<param name="enlarge"    type="double" value="0.0"/>		
 		</node>
 
-		<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/drew/rosbag/"/> 
+		<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/ugo/rosbag/"/> 
 	
 	</group>
 </launch>

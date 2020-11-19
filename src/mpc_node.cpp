@@ -523,7 +523,7 @@ int main (int argc, char *argv[])
 
 			}
 
-			if ( horizonCounter == 1){
+			if ( horizonCounter == 2){
 				mpcValFun->updateHorizon();
 				horizonCounter = 0;
 			} else {
@@ -570,6 +570,7 @@ int main (int argc, char *argv[])
 				optSol_.xCurr[i] = xCurr[i];
 				optSol_.x_IC[i] = mpcValFun->x_IC_[i];
 			}
+			optSol_.time = stateCurrent_.time;	
 			pub_optSol_.publish(optSol_);
 			
 			for (int i = 0; i < nx*nx; i++){

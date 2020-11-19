@@ -58,6 +58,9 @@ double thetaDotmax = {};
 double psimax      = {};
 double psiDotmax   = {};
 
+bool clf_active;
+bool tracking_active;
+
 const int N_read = 10;
 const int N = 40;
 int h_counter = 0;
@@ -190,6 +193,9 @@ int main (int argc, char *argv[])
 	nhParams_->param<double>("psimax"     , psimax,0.);
 	nhParams_->param<double>("psiDotmax"  , psiDotmax,0.);
 
+	nhParams_->param<bool>("clf_active"     , clf_active, false);
+	nhParams_->param<bool>("tracking_active"  , tracking_active,false);
+
 	if (delay_ms_ < 0.01){
 		delay_ms_ = 1;
 	}
@@ -201,7 +207,7 @@ int main (int argc, char *argv[])
 
 	// Init pubs, subs and srvs
 	sub_optSol_        = nh_->subscribe<segway_sim::optSol>("optimal_sol", 1, optSolCallback);
-	sub_state_nominal_ = nh_->subscribe<segway_sim::state>("state_nominal", 1, stateNominalCallback);
+	// sub_state_nominal_ = nh_->subscribe<segway_sim::state>("state_nominal", 1, stateNominalCallback);
 
 	sub_state_true_    = nh_->subscribe<segway_sim::state>("state_true", 1, stateTrueCallback);
 	sub_linear_mat_    = nh_->subscribe<segway_sim::linearMatrices>("linear_matrices", 1, linearMatricesCallback);
@@ -259,16 +265,9 @@ int main (int argc, char *argv[])
 			// apply input (note that at time t we compute the input for time t+1)
 			
 			ros_time_init = ros::Time::now();
- 			double dt_delay = (double) (stateTrue_.time -stateNominal_.time);
+ 			double dt_delay = (double) (stateTrue_.time -optSol_.time);
  			// ROS_INFO("dt: %f",stateTrue_.time-stateNominal_.time);
 
- 			if (dt_delay > dt_mpc){
-				if (h_counter*dt_mpc < dt_delay){
-					h_counter = h_counter + 1;
-				}				
-			}
-			uMPC[0] = uPred[0+h_counter*nu];
-			uMPC[1] = uPred[1+h_counter*nu];
  			
 
  		// 	if ((lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0] <= 15.1) and (lowLevelActive_ * (cbf->uCBF[0]) + inputMpc_.inputVec[0] >= -15.1) and (lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1] <= 15.1) and (lowLevelActive_ * (cbf->uCBF[1]) + inputMpc_.inputVec[1] >= -15.1) ) {
@@ -288,7 +287,7 @@ int main (int argc, char *argv[])
 			}
 
 			// Integreate for delay
-			for (int k = 0; k < (int) ((stateTrue_.time-stateNominal_.time)/dt_); k++ ){
+			for (int k = 0; k < (int) ((stateTrue_.time-optSol_.time)/dt_); k++ ){
 				// One step
 				for (int i = 0; i < nx; i++){
 					Xn_next[i] = 0.0;
@@ -319,30 +318,46 @@ int main (int argc, char *argv[])
 			double Kd_psi = 37.6492;
 			double Kd_theta = 1;
 			double Kp_theta = 1;
-
 			double uTracking[2];
-			uTracking[0] = Kp_psi*(X[5] - Xtraj[5]) + Kd_psi*(X[6] - Xtraj[6]) +Kp_v*(X[3] - Xtraj[3]);
-			uTracking[1] = Kp_psi*(X[5] - Xtraj[5]) + Kd_psi*(X[6] - Xtraj[6]) +Kp_v*(X[3] - Xtraj[3]);
-
 			double BT = 0;
-			uTracking[0] = uTracking[0]/2 + BT/2;
-			uTracking[1] = uTracking[1]/2 - BT/2;
-
 			cbf->setIC(X, Xtraj);
 			cbf->setMatrices(Alinear, Blinear, Clinear);
+
+			if (tracking_active){
+				uTracking[0] = Kp_psi*(X[5] - Xtraj[5]) + Kd_psi*(X[6] - Xtraj[6]) +Kp_v*(X[3] - Xtraj[3]);
+				uTracking[1] = Kp_psi*(X[5] - Xtraj[5]) + Kd_psi*(X[6] - Xtraj[6]) +Kp_v*(X[3] - Xtraj[3]);
+
+				uTracking[0] = uTracking[0]/2 + BT/2;
+				uTracking[1] = uTracking[1]/2 - BT/2;
+
+				cbf->uDes[0] = uTracking[0];
+				cbf->uDes[1] = uTracking[1];
+			}
+
+
 			// Solve CBF-CLF QP
-			// cbf->uDes[0] = uTracking[0];
-			// cbf->uDes[1] = uTracking[1];
-			cbf->V_alpha[0] = 10000;
+			if (!clf_active){
+				cbf->clfActive  = false;
+			}
+			
+			cbf->V_alpha[0] = 10.0;
 			cbf->h_alpha[0] = 1;
+
+			uMPC[0] = uPred[0];
+			uMPC[1] = uPred[1];
+
  			cbf->evaluateCBFqpConstraintMatrices(uMPC, 0);
  			cbf->solveQP(0);
 
-			// inputTot_.inputVec[0] = uPred[0] + uTracking[0];
-			// inputTot_.inputVec[1] = uPred[1] + uTracking[1];
-			inputTot_.inputVec[0] = uPred[0];// + cbf->uCBF[0];
-			inputTot_.inputVec[1] = uPred[1];// + cbf->uCBF[1];
+			// ROS_INFO("h %f",cbf->h[0]);
 
+ 			if (lowLevelActive_){
+				inputTot_.inputVec[0] = uPred[0] + cbf->uCBF[0];
+				inputTot_.inputVec[1] = uPred[1] + cbf->uCBF[1];
+ 			}else{
+				inputTot_.inputVec[0] = uPred[0];
+				inputTot_.inputVec[1] = uPred[1];
+ 			}
 
 			pub_inputAct_.publish(inputTot_);
 

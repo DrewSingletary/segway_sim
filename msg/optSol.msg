@@ -1,5 +1,6 @@
 uint8 status
 Header header
+float64 time
 float64[367] optimalSolution
 float64 solverFlag
 float64 solverTime
