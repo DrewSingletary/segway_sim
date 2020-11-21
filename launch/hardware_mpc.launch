@@ -38,6 +38,7 @@
 	        <param name="_btn_run" value="2" type="int" />
 	        <param name="_btn_backup" value="1" type="int" />
 		</node>
-	
+		<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/drew/rosbag_exp/"/> 
+
 	</group>
 </launch>

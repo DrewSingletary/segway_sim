@@ -56,7 +56,7 @@ def main():
     goalSetAndStateMsg  = goalSetAndState()   
     msghighLevelBelief  = highLevelBelief()
 
-    option = 3
+    option = 1
     if option == 1:
         # Import MOMDP
         fileName  = sys.path[0]+'/pyFun/data/Qug_1/MOMDP_obj_8x8ug_2.pkl'
@@ -221,7 +221,6 @@ def updateObstacles(markerArray, momdp, bt):
         counter += 1
 
     if momdp.unGoal == True:
-        print("Multi Obs Active")
         goalBeliefGoal = []
         [goalBeliefGoal.append( momdp.computeBelief(bt, i+momdp.numObs) ) for i in range(0, momdp.numUGoal)]
         for obsPr in goalBeliefGoal:

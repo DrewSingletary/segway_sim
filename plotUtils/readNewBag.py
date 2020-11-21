@@ -22,12 +22,12 @@ matplotlib.rcParams.update({'font.size': 22})
 # bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
 # bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
 
-newest = max(glob.iglob('/home/ugo/rosbag/*.bag'), key=os.path.getctime)
+newest = max(glob.iglob('/home/drew/rosbag/*.bag'), key=os.path.getctime)
 print("Open: ", newest)
 bag = rosbag.Bag(newest)
 
 # bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-13-05-14.bag')
-bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-11-18-22-41-46.bag')
+bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-19-20-55-01.bag')
 # bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-13-01-37.bag')
 
 

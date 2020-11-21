@@ -31,18 +31,15 @@ def main():
 	# evaluateAllPolicies(load, digitsResults,printLevel, discOpt, gridWorldList, obstList, policyList)
 
 def evaluateSinglePolicy(load, digitsResults, printLevel, discOpt):
-	# gridWorld = '5x5ug'
-	# numObst = 2
-	# gridWorld = '5x5ug'
+	# gridWorld = '5x5'
 	# numObst = 3
-	gridWorld = '5x5'
-	numObst = 3
-	# gridWorld = '8x8ug'
-	# numObst = 2
-	policy = 'TOQ'
+	# policy = 'TOQ'
+	# momdp   = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = False)
 
-	momdp   = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = False)
-	# momdp   = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = True)
+	gridWorld = '8x8ug'
+	numObst = 2
+	policy = 'Q'
+	momdp   = getMOMDP(gridWorld, numObst, policy, printLevel, load, discOpt, unGoal = True)
 
 	# # Evaluate expected cost and probability of failure
 	# results = runAllSim(momdp, gridWorld, numObst, policy, printLevel, digitsResults) 

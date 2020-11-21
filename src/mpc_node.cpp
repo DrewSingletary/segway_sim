@@ -118,9 +118,11 @@ void sendToSegway(void)
 		for (int i = 0; i < nx*nx; i++){
 			add_float_to_vec(segway_msg.data, mpcValFun->AlinearOut[i]);
 		}
+
 		for (int i = 0; i < nx*nu; i++){
 			add_float_to_vec(segway_msg.data, mpcValFun->BlinearOut[i]);
 		}
+
 		for (int i = 0; i < nx; i++){
 			add_float_to_vec(segway_msg.data, mpcValFun->ClinearOut[i]);
 		}
@@ -159,11 +161,7 @@ void stateCallback_hw(const ambercortex_ros::state::ConstPtr msg)
 
 void ctrl_infoCallback_hw(const ambercortex_ros::ctrl_info::ConstPtr msg)
 {
-	num32_t mpc_time;
-	mpc_time.f = msg->data[0];
-	uint32_t delay;
-	delay = msg->time - mpc_time.ui;
-	ROS_INFO("mpc delay (ms): %f h: %f",(float)delay/1000,msg->data[1]);
+	ROS_INFO("mpc delay (ms): %f h: %f", msg->data[0], msg->data[7]);
 }
 
 void joy_cb(const sensor_msgs::Joy::ConstPtr msg)
@@ -523,7 +521,7 @@ int main (int argc, char *argv[])
 
 			}
 
-			if ( horizonCounter == 2){
+			if ( horizonCounter == 1){
 				mpcValFun->updateHorizon();
 				horizonCounter = 0;
 			} else {

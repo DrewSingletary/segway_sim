@@ -1,11 +1,30 @@
 import rosbag
+import sys
+import pickle
 import pdb
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Rectangle 
 from matplotlib.animation import FuncAnimation
+import scipy.io as sio
+import os
+sys.path.append('../src/pyFun')
+from tempfile import TemporaryFile
+import glob
+from nav_msgs.msg import Odometry as stateTB
+from geometry_msgs.msg import Twist
+from main import getMOMDP
 
-# bag = rosbag.Bag('/home/ugo/rosbag/_2020-08-11-18-41-20.bag')
-bag = rosbag.Bag('/home/drew/mpc_bags/b.test.bag')
+from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
+matplotlib.rcParams.update({'font.size': 22})
+
+# bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
+# bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
+
+newest = max(glob.iglob('/home/drew/rosbag_exp/*.bag'), key=os.path.getctime)
+print("Open: ", newest)
+bag = rosbag.Bag(newest)
 
 
 x_start = 0.5
@@ -47,19 +66,44 @@ if input == 'y':
 	
 	uTot = []
 	uCBF = []
+	uMPC = []
 	h_val = []
 	t_lowLevel = []
+	delay_t = []
 	for topic, msg, t in bag.read_messages(topics=['/cyberpod/ctrl_info']):
+		delay_t.append(msg.data[0])
 		uTot.append([msg.data[1], msg.data[2]])
-		uTot.append([msg.data[3], msg.data[4]])
-		h_val.append(msg.data[5])
+		uMPC.append([msg.data[3], msg.data[4]])
+		uCBF.append([msg.data[5], msg.data[6]])
+		h_val.append(msg.data[7])
 		t_lowLevel.append((len(t_lowLevel))*dt_ll)
 
 	plt.figure()
-	plt.plot(t_lowLevel, h_val, label='u2')
+	plt.plot(t_lowLevel, h_val, label='h')
 	plt.ylabel('barrier')
 	plt.legend()
 	plt.ylim(-10,1)
+
+	plt.figure()
+	plt.plot(t_lowLevel, delay_t, label='delay')
+	plt.ylabel('delay')
+	plt.legend()
+
+	uMPC_array = np.array(uMPC)
+	uCBF_array = np.array(uCBF)
+	uTot_array = np.array(uTot)
+
+	plt.figure()
+	plt.subplot(211)
+	plt.plot(t_lowLevel, uMPC_array[:, 0], '-o', label='MPC')
+	plt.plot(t_lowLevel, uCBF_array[:, 0], '-o', label='CBF')
+	plt.plot(t_lowLevel, uTot_array[:, 0], '-o', label='tot')
+	plt.subplot(212)
+	plt.plot(t_lowLevel, uMPC_array[:, 1], '-o', label='MPC')
+	plt.plot(t_lowLevel, uCBF_array[:, 1], '-o', label='CBF')
+	plt.plot(t_lowLevel, uTot_array[:, 1], '-o', label='tot')
+	plt.ylabel('input')
+	plt.legend()
 
 	## =======================================================
 	## Read and plot INPUT
@@ -97,22 +141,23 @@ if input == 'y':
 
 	state_array = np.array(state)
 	
-	plt.figure()
-	plt.subplot(711)
-	plt.plot(time_state, state_array[:,0], label='x')
-	plt.subplot(712)
-	plt.plot(time_state, state_array[:,1], label='x')
-	plt.subplot(713)
-	plt.plot(time_state, state_array[:,2], label='x')
-	plt.subplot(714)
-	plt.plot(time_state, state_array[:,3], label='x')
-	plt.subplot(715)
-	plt.plot(time_state, state_array[:,4], label='x')
-	plt.subplot(716)
-	plt.plot(time_state, state_array[:,5], label='x')
-	plt.subplot(717)
-	plt.plot(time_state, state_array[:,6], label='x')
-	plt.legend()
+
+	# plt.figure()
+	# plt.subplot(711)
+	# plt.plot(time_state, state_array[:,0], label='x')
+	# plt.subplot(712)
+	# plt.plot(time_state, state_array[:,1], label='x')
+	# plt.subplot(713)
+	# plt.plot(time_state, state_array[:,2], label='x')
+	# plt.subplot(714)
+	# plt.plot(time_state, state_array[:,3], label='x')
+	# plt.subplot(715)
+	# plt.plot(time_state, state_array[:,4], label='x')
+	# plt.subplot(716)
+	# plt.plot(time_state, state_array[:,5], label='x')
+	# plt.subplot(717)
+	# plt.plot(time_state, state_array[:,6], label='x')
+	# plt.legend()
 
 	## =======================================================
 	## Read and plot PRED TRAJECTORY
@@ -146,22 +191,22 @@ if input == 'y':
 
 	error_array = np.array(error)
 	
-	plt.figure()
-	plt.subplot(711)
-	plt.plot(time_optSol[0:-1], error_array[:,0], label='x')
-	plt.subplot(712)
-	plt.plot(time_optSol[0:-1], error_array[:,1], label='x')
-	plt.subplot(713)
-	plt.plot(time_optSol[0:-1], error_array[:,2], label='x')
-	plt.subplot(714)
-	plt.plot(time_optSol[0:-1], error_array[:,3], label='x')
-	plt.subplot(715)
-	plt.plot(time_optSol[0:-1], error_array[:,4], label='x')
-	plt.subplot(716)
-	plt.plot(time_optSol[0:-1], error_array[:,5], label='x')
-	plt.subplot(717)
-	plt.plot(time_optSol[0:-1], error_array[:,6], label='prediction error')
-	plt.legend()
+	# plt.figure()
+	# plt.subplot(711)
+	# plt.plot(time_optSol[0:-1], error_array[:,0], label='x')
+	# plt.subplot(712)
+	# plt.plot(time_optSol[0:-1], error_array[:,1], label='x')
+	# plt.subplot(713)
+	# plt.plot(time_optSol[0:-1], error_array[:,2], label='x')
+	# plt.subplot(714)
+	# plt.plot(time_optSol[0:-1], error_array[:,3], label='x')
+	# plt.subplot(715)
+	# plt.plot(time_optSol[0:-1], error_array[:,4], label='x')
+	# plt.subplot(716)
+	# plt.plot(time_optSol[0:-1], error_array[:,5], label='x')
+	# plt.subplot(717)
+	# plt.plot(time_optSol[0:-1], error_array[:,6], label='prediction error')
+	# plt.legend()
 
 	plt.figure()
 	plt.plot(time_optSol, solverFlag , '-og',label='solverFlag')
@@ -183,22 +228,22 @@ if input == 'y':
 		e0.append((np.array(x_IC[i])-np.array(optSol[i][0:7])).tolist())
 
 	e0_array = np.array(e0)
-	plt.figure()
-	plt.subplot(711)
-	plt.plot(time_optSol, e0_array[:,0], label='x')
-	plt.subplot(712)
-	plt.plot(time_optSol, e0_array[:,1], label='x')
-	plt.subplot(713)
-	plt.plot(time_optSol, e0_array[:,2], label='x')
-	plt.subplot(714)
-	plt.plot(time_optSol, e0_array[:,3], label='x')
-	plt.subplot(715)
-	plt.plot(time_optSol, e0_array[:,4], label='x')
-	plt.subplot(716)
-	plt.plot(time_optSol, e0_array[:,5], label='x')
-	plt.subplot(717)
-	plt.plot(time_optSol, e0_array[:,6], label='e_0')
-	plt.legend()
+	# plt.figure()
+	# plt.subplot(711)
+	# plt.plot(time_optSol, e0_array[:,0], label='x')
+	# plt.subplot(712)
+	# plt.plot(time_optSol, e0_array[:,1], label='x')
+	# plt.subplot(713)
+	# plt.plot(time_optSol, e0_array[:,2], label='x')
+	# plt.subplot(714)
+	# plt.plot(time_optSol, e0_array[:,3], label='x')
+	# plt.subplot(715)
+	# plt.plot(time_optSol, e0_array[:,4], label='x')
+	# plt.subplot(716)
+	# plt.plot(time_optSol, e0_array[:,5], label='x')
+	# plt.subplot(717)
+	# plt.plot(time_optSol, e0_array[:,6], label='e_0')
+	# plt.legend()
 	plt.show()
 
 	input = raw_input("Do you want to plot an animation for the predicted trajectory? [y/n] ")
