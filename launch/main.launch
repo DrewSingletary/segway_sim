@@ -37,6 +37,15 @@
 			<param name="low_level_active" value="true"/>
 			<param name="clf_active" value="true"/>
 			<param name="tracking_active" value="false"/>
+
+			<param name="max_x"        type="double" value="0.02"/>
+			<param name="max_y"        type="double" value="0.02"/>
+			<param name="max_theta"    type="double" value="0.1"/>
+			<param name="max_v"        type="double" value="0.1"/>
+			<param name="max_thetaDot" type="double" value="0.3"/>
+			<param name="max_psi"      type="double" value="0.1"/>
+			<param name="max_psiDot"   type="double" value="0.3"/>
+
 		</node>
 
 		<node name="mpc" pkg="segway_sim" type="mpc_node" output="screen">
@@ -49,13 +58,13 @@
 			<param name="y_start" value="7.5"/>
 			<param name="theta_start" value="3.14"/>
 			<!-- IMPORTANT: the effect of the delay in the prediction horizon is a bit approximated when delay =! dt_mpc (if needed can be handles more carefully) -->
-			<param name="e_x"        type="double" value="0.01"/>
-			<param name="e_y"        type="double" value="0.01"/>
-			<param name="e_theta"    type="double" value="0.02"/>
-			<param name="e_v"        type="double" value="0.01"/>
-			<param name="e_thetaDot" type="double" value="0.01"/>
-			<param name="e_psi"      type="double" value="0.02"/>
-			<param name="e_psiDot"   type="double" value="0.01"/>
+			<param name="e_x"        type="double" value="0.02"/>
+			<param name="e_y"        type="double" value="0.02"/>
+			<param name="e_theta"    type="double" value="0.1"/>
+			<param name="e_v"        type="double" value="0.1"/>
+			<param name="e_thetaDot" type="double" value="0.3"/>
+			<param name="e_psi"      type="double" value="0.1"/>
+			<param name="e_psiDot"   type="double" value="0.3"/>
 
 			<param name="deltaHorizonUpdate" type="int" value="0"/>		
 			<param name="enlarge"    type="double" value="0.0"/>		

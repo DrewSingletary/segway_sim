@@ -27,7 +27,7 @@ print("Open: ", newest)
 bag = rosbag.Bag(newest)
 
 # bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-13-05-14.bag')
-bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-21-17-51-18.bag')
+bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-22-12-11-39.bag')
 # bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-13-01-37.bag')
 
 

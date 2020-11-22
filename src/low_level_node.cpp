@@ -50,13 +50,13 @@ double Alinear[nx*nx] = {};
 double Blinear[nx*nu] = {};
 double Clinear[nx] = {};
 
-double xmax        = {};
-double ymax        = {};
-double thetamax    = {};
-double vmax        = {};
-double thetaDotmax = {};
-double psimax      = {};
-double psiDotmax   = {};
+double max_x        = {};
+double max_y        = {};
+double max_theta    = {};
+double max_v        = {};
+double max_thetaDot = {};
+double max_psi      = {};
+double max_psiDot   = {};
 
 bool clf_active;
 bool tracking_active;
@@ -185,14 +185,6 @@ int main (int argc, char *argv[])
 	nhParams_->param<bool>("low_level_active",lowLevelActive_,false);
 	nhParams_->param<double>("low_level_input_delay",delay_ms_,0.);
 
-	nhParams_->param<double>("xmax"       , xmax,0.);
-	nhParams_->param<double>("ymax"       , ymax,0.);
-	nhParams_->param<double>("thetamax"   , thetamax,0.);
-	nhParams_->param<double>("vmax"       , vmax,0.);
-	nhParams_->param<double>("thetaDotmax", thetaDotmax,0.);
-	nhParams_->param<double>("psimax"     , psimax,0.);
-	nhParams_->param<double>("psiDotmax"  , psiDotmax,0.);
-
 	nhParams_->param<bool>("clf_active"     , clf_active, false);
 	nhParams_->param<bool>("tracking_active"  , tracking_active,false);
 
@@ -215,8 +207,18 @@ int main (int argc, char *argv[])
 	pub_inputAct_ 	   = nh_->advertise<segway_sim::input>("input", 1);
 	pub_lowLevelLog_   = nh_->advertise<segway_sim::lowLevelLog>("lowLevelLog", 1);
 
-	double H_x[3] = {10000,10000,1};
-	cbf = new CBF(nx_, nu_, true, H_x,x_eq_, fullDynamics,safetySet,clf);
+	nhParams_->param<double>("max_x"       , max_x,0.04);
+	nhParams_->param<double>("max_y"       , max_y,0.04);
+	nhParams_->param<double>("max_theta"   , max_theta,0.1);
+	nhParams_->param<double>("max_v"       , max_v,0.3);
+	nhParams_->param<double>("max_thetaDot", max_thetaDot,0.3);
+	nhParams_->param<double>("max_psi"     , max_psi,0.1);
+	nhParams_->param<double>("max_psiDot"  , max_psiDot,0.3);
+
+	double x_max[nx] = {max_x, max_y, max_theta, max_v, max_thetaDot, max_psi, max_psiDot};
+
+	c_float H_x[3] = {10000,10000,1};
+	cbf = new CBF(nx_, nu_, true, H_x,x_eq_, x_max, fullDynamics,safetySet,clf);
 
 	double xeq[nx]  = { 0.0, 0.0, 0.0, 0.0, 0.0, offset_angle_, 0.0};  // initial condition to
 	Xn[5] = offset_angle_;
