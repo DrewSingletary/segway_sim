@@ -4,6 +4,7 @@
 
 		<node name="momdp_node" pkg="segway_sim" type="momdp_node.py" output="screen">
 			<param name="expFlag" value="1"/>
+			<param name="option" value="3"/>
 		</node>
 	
 	</group>

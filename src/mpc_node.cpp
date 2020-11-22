@@ -60,6 +60,8 @@ double e_psiDot   = {};
 double enlarge    = {};
 bool lowLevelActive;
 
+int deltaHorizonUpdate;
+
 int flag_state_measurement = 0;
 int flag_goalSetAndState_measurement = 0;
 
@@ -238,6 +240,9 @@ int main (int argc, char *argv[])
 	pub_linearMat     = nh_->advertise<segway_sim::linearMatrices>("linear_matrices", 1);
 
 	// Retrieve ROS parameters
+	nhParams_->param<int>("deltaHorizonUpdate", deltaHorizonUpdate, 0);
+	cout << "=================== deltaHorizonUpdate: " << deltaHorizonUpdate << endl;
+
 	nhParams_->param<double>("dt", dt_,0.05);
 	nhParams_->param<double>("offset_angle", offset_angle_,0.);
 	nhParams_->param<double>("mpc_input_delay", delay_ms_,0.);
@@ -521,7 +526,7 @@ int main (int argc, char *argv[])
 
 			}
 
-			if ( horizonCounter == 1){
+			if ( horizonCounter == deltaHorizonUpdate){
 				mpcValFun->updateHorizon();
 				horizonCounter = 0;
 			} else {

@@ -41,6 +41,7 @@ def main():
     x_start        = rospy.get_param("mpc/x_start")
     y_start        = rospy.get_param("mpc/y_start")
     expFlag        = rospy.get_param("momdp_node/expFlag")
+    option         = rospy.get_param("momdp_node/option")
 
     if expFlag == 1:
         from ambercortex_ros.msg import state
@@ -56,7 +57,6 @@ def main():
     goalSetAndStateMsg  = goalSetAndState()   
     msghighLevelBelief  = highLevelBelief()
 
-    option = 1
     if option == 1:
         # Import MOMDP
         fileName  = sys.path[0]+'/pyFun/data/Qug_1/MOMDP_obj_8x8ug_2.pkl'

@@ -22,7 +22,18 @@ CBF branch installation coming soon.
 The simulation is based on the Ninebot Elite used in the AMBER lab [link](http://www.bipedalrobotics.com/). The code run in this simulation environment has been used directly on the hardware, as evidenced in this [![video](https://img.youtube.com/vi/Tr6bpjmzHcE/maxresdefault.jpg)](https://youtu.be/Tr6bpjmzHcE)
 
 ### How to run
-Coming soon
+
+After intalling the MPC and OSQP libraries listend in the above Prerequisites section follows the following steps:
+
+- Run the main.py file in the folder /segway_sim/src/pyFun. It should save a .pkl object in the /segway_sim/src/pyFun/data/Qug_1 folder
+- Download the ambercorted_ros pakage from [here](http://www.bipedalrobotics.com/)
+- Checkout the dev branch in the ambercorted_ros package
+- Build your catkin workspace
+- Open the launch file main.launch. At the bottom of the launch file enter the folder where you would like to save your bag file
+- Run roslaunch segway_sim main.launch
+- In a new terminal run rosservice call /segway_sim/integrator/ui "cmd: 1"
+- After the simulation run the file readNewBag.py in the /segway_sim/plotUtils folder (it is needed to change the path where the bag file has been saved)
+
 
 ## Results
 Coming soon
