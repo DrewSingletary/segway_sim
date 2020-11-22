@@ -26,6 +26,7 @@ newest = max(glob.iglob('/home/drew/rosbag_exp/*.bag'), key=os.path.getctime)
 print("Open: ", newest)
 bag = rosbag.Bag(newest)
 
+bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-21-20-18-57.bag')
 
 x_start = 0.5
 y_start = 4.5
@@ -59,11 +60,17 @@ def getPred(optSol):
 
 
 
-input = raw_input("Do you want to plot mid-level data? [y/n] ")
+input = 'y'#raw_input("Do you want to plot mid-level data? [y/n] ")
 if input == 'y':
 	
 	dt_ll = 1/800.0
 	
+	h_val_noBarrier = []
+	delay_t_noBarrier = []
+	for topic, msg, t in bagNoBarrier.read_messages(topics=['/cyberpod/ctrl_info']):
+		h_val_noBarrier.append(msg.data[7])
+		delay_t_noBarrier.append((len(delay_t_noBarrier))*dt_ll)
+
 	uTot = []
 	uCBF = []
 	uMPC = []
@@ -79,6 +86,7 @@ if input == 'y':
 		t_lowLevel.append((len(t_lowLevel))*dt_ll)
 
 	plt.figure()
+	plt.plot(delay_t_noBarrier, h_val_noBarrier, label='h no barrier')
 	plt.plot(t_lowLevel, h_val, label='h')
 	plt.ylabel('barrier')
 	plt.legend()
@@ -246,7 +254,7 @@ if input == 'y':
 	# plt.legend()
 	plt.show()
 
-	input = raw_input("Do you want to plot an animation for the predicted trajectory? [y/n] ")
+	input = 'n'#raw_input("Do you want to plot an animation for the predicted trajectory? [y/n] ")
 	if input == 'y':
 		fig = plt.figure(200)
 		for i in range(0,7):
@@ -325,7 +333,7 @@ if input == 'y':
 ## =======================================================
 ## Read Low Level Log
 ## =======================================================
-input = raw_input("Do you want to plot low-level data? [y/n] ")
+input = 'n'#raw_input("Do you want to plot low-level data? [y/n] ")
 if input == 'y':
 	X = []
 	Xn = []

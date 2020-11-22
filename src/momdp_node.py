@@ -43,6 +43,9 @@ def main():
     expFlag        = rospy.get_param("momdp_node/expFlag")
     option         = rospy.get_param("momdp_node/option")
 
+    print("x_start: ", x_start)
+    print("y_start: ", y_start)
+
     if expFlag == 1:
         from ambercortex_ros.msg import state
     else:
