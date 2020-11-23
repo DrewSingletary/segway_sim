@@ -9,7 +9,7 @@ import os
 
 
 def main():
-	load          = 0 # 0 = compute policy and save policy object, 1 = load policy object, -1 = compute policy but DO NOT save it
+	load          = 1 # 0 = compute policy and save policy object, 1 = load policy object, -1 = compute policy but DO NOT save it
 	digitsResults = 6 # number of digits to print, just for visual output 
 	printLevel    = 3 # 0 = only value function update and results, 1 = minimal, 2 = verbose
 	

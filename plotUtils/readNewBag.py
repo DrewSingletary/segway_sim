@@ -22,13 +22,13 @@ matplotlib.rcParams.update({'font.size': 22})
 # bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
 # bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
 
-newest = max(glob.iglob('/home/drew/rosbag/*.bag'), key=os.path.getctime)
-print("Open: ", newest)
-bag = rosbag.Bag(newest)
+# newest = max(glob.iglob('/home/drew/rosbag/*.bag'), key=os.path.getctime)
+# print("Open: ", newest)
+# bag = rosbag.Bag(newest)
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-22-12-11-39.bag')
 
-# bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-13-05-14.bag')
-bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-22-12-11-39.bag')
-# bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-17-13-01-37.bag')
+bag = rosbag.Bag('/home/ugo/expDataFinal/simData/_2020-11-22-12-13-41.bag')
+bagNoBarrier = rosbag.Bag('/home/ugo/expDataFinal/simData/_2020-11-22-12-11-39.bag')
 
 
 dt_mpc = 0.05
@@ -42,9 +42,9 @@ T_end = 120
 
 opt = 1
 if opt == 1:
-	# fileName = sys.path[0]+'/../src/pyFun/data/Qug_1/MOMDP_obj_8x8ug_2.pkl'
+	fileName = sys.path[0]+'/../src/pyFun/data/Qug_1/MOMDP_obj_8x8ug_2.pkl'
 	# fileName = sys.path[0]+'/../src/pyFun/TOQug_1/MOMDP_obj_10x10ug_2.pkl'
-	fileName = sys.path[0]+'/../src/pyFun/data/TOQ_1/MOMDP_obj_5x5_3.pkl'
+	# fileName = sys.path[0]+'/../src/pyFun/data/TOQ_1/MOMDP_obj_5x5_3.pkl'
 
 	pickle_in = open(fileName,"rb")
 	momdp = pickle.load(pickle_in)
@@ -452,7 +452,7 @@ if input == 'y':
 			h_noBarrier.append(msg.h)
 			
 	plt.figure(figsize=(12,10))
-	plt.plot(time_lowLevel_noBarrier, h_noBarrier, '-r', label=' mid-layer + MPC')
+	plt.plot(time_lowLevel_noBarrier, h_noBarrier, '-r', label='naive MPC')
 	plt.plot(time_lowLevel, h, '-b', label='proposed strategy')
 	plt.plot([-10, 100], [0,0], '-k')
 	plt.ylabel('h(e)')
@@ -466,7 +466,7 @@ if input == 'y':
 	plt.ylabel('Solver time [s]')
 	plt.xlabel('Time [s]')
 	plt.legend()
-	# plt.ylim(-1.1, 1)
+	plt.ylim(0, 0.05)
 
 	plt.figure(figsize=(12,10))
 	plt.subplot(211)
@@ -501,7 +501,8 @@ if input == 'y':
 	plt.plot(time_lowLevel, uTot_array[:, 0], '-b', label='total input')
 	plt.ylabel('Input [N/m]')
 	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
-	plt.xlim(14.5, 15.5)
+	plt.xlim(14.6, 14.8)
+	plt.ylim(-5, 5)
 	plt.subplot(212)
 	plt.plot(time_lowLevel, uMPC_array[:, 1], '-r', label='mid-level input')
 	plt.plot(time_lowLevel, uCBF_array[:, 1], '-k', label='low-level input')
@@ -509,7 +510,8 @@ if input == 'y':
 	plt.ylabel('Input [N/m]')
 	plt.xlabel('Time [s]')
 	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
-	plt.xlim(14.5, 15.5)
+	plt.xlim(14.6, 14.8)
+	plt.ylim(-5, 5)
 
 	plt.figure()
 	plt.plot(time_lowLevel, uMPC_array[:, 0], '-o', label='MPC')

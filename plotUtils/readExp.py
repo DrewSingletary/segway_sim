@@ -19,14 +19,21 @@ from main import getMOMDP
 from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 matplotlib.rcParams.update({'font.size': 22})
 
-# bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
-# bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
 
-newest = max(glob.iglob('/home/drew/rosbag_exp/*.bag'), key=os.path.getctime)
-print("Open: ", newest)
-bag = rosbag.Bag(newest)
+# newest = max(glob.iglob('/home/drew/rosbag_exp/*.bag'), key=os.path.getctime)
+# print("Open: ", newest)
+# bag = rosbag.Bag(newest)
 
-bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-21-20-18-57.bag')
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-21-20-18-57.bag')
+
+# # Exp 1
+bagNoBarrier = rosbag.Bag('/home/ugo/expDataFinal/expComp_1/_2020-11-21-19-57-44.bag')
+bag = rosbag.Bag('/home/ugo/expDataFinal/expComp_1/_2020-11-21-19-59-41.bag')
+
+# Exp 2
+# bag = rosbag.Bag('/home/ugo/expDataFinal/expComp_2/_2020-11-21-20-16-55.bag')
+# bagNoBarrier = rosbag.Bag('/home/ugo/expDataFinal/expComp_2/_2020-11-21-20-18-57.bag')
+
 
 x_start = 0.5
 y_start = 4.5
@@ -85,9 +92,9 @@ if input == 'y':
 		h_val.append(msg.data[7])
 		t_lowLevel.append((len(t_lowLevel))*dt_ll)
 
-	plt.figure()
-	plt.plot(delay_t_noBarrier, h_val_noBarrier, label='h no barrier')
-	plt.plot(t_lowLevel, h_val, label='h')
+	plt.figure(figsize=(12,10))
+	plt.plot(delay_t_noBarrier, h_val_noBarrier, '-r', label='naive MPC')
+	plt.plot(t_lowLevel, h_val, '-b', label='proposed strategy')
 	plt.ylabel('barrier')
 	plt.legend()
 	plt.ylim(-10,1)
@@ -101,18 +108,21 @@ if input == 'y':
 	uCBF_array = np.array(uCBF)
 	uTot_array = np.array(uTot)
 
-	plt.figure()
+	plt.figure(figsize=(12,10))
 	plt.subplot(211)
-	plt.plot(t_lowLevel, uMPC_array[:, 0], '-o', label='MPC')
-	plt.plot(t_lowLevel, uCBF_array[:, 0], '-o', label='CBF')
-	plt.plot(t_lowLevel, uTot_array[:, 0], '-o', label='tot')
+	plt.plot(t_lowLevel, uMPC_array[:, 0], '-r', label='MPC')
+	plt.plot(t_lowLevel, uCBF_array[:, 0], '-k', label='CBF')
+	plt.plot(t_lowLevel, uTot_array[:, 0], '-b', label='tot')
+	plt.xlim(20.8,21.2)
+	plt.ylim(-4,2)
 	plt.subplot(212)
-	plt.plot(t_lowLevel, uMPC_array[:, 1], '-o', label='MPC')
-	plt.plot(t_lowLevel, uCBF_array[:, 1], '-o', label='CBF')
-	plt.plot(t_lowLevel, uTot_array[:, 1], '-o', label='tot')
+	plt.plot(t_lowLevel, uMPC_array[:, 1], '-r', label='MPC')
+	plt.plot(t_lowLevel, uCBF_array[:, 1], '-k', label='CBF')
+	plt.plot(t_lowLevel, uTot_array[:, 1], '-b', label='tot')
 	plt.ylabel('input')
 	plt.legend()
-
+	plt.xlim(20.8,21.2)
+	plt.ylim(-4,2)
 	## =======================================================
 	## Read and plot INPUT
 	## =======================================================
