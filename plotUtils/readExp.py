@@ -20,20 +20,29 @@ from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 matplotlib.rcParams.update({'font.size': 22})
 
 
-# newest = max(glob.iglob('/home/drew/rosbag_exp/*.bag'), key=os.path.getctime)
-# print("Open: ", newest)
-# bag = rosbag.Bag(newest)
+newest = max(glob.iglob('/home/drew/rosbag_exp/*.bag'), key=os.path.getctime)
+print("Open: ", newest)
+bag = rosbag.Bag(newest)
 
-# bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-21-20-18-57.bag')
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-22-12.bag')
+bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-22-12.bag')
+bag = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-24-26.bag')
 
 # # Exp 1
-bagNoBarrier = rosbag.Bag('/home/ugo/expDataFinal/expComp_1/_2020-11-21-19-57-44.bag')
-bag = rosbag.Bag('/home/ugo/expDataFinal/expComp_1/_2020-11-21-19-59-41.bag')
-
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-21-19-57-44.bag')
+# bag = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-21-19-59-41.bag')
+# 
 # Exp 2
 # bag = rosbag.Bag('/home/ugo/expDataFinal/expComp_2/_2020-11-21-20-16-55.bag')
 # bagNoBarrier = rosbag.Bag('/home/ugo/expDataFinal/expComp_2/_2020-11-21-20-18-57.bag')
 
+# # Exp 3
+# bag = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-11-31-39.bag')
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-10-53-04.bag')
+
+# # Exp 4
+# bag = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-45-54.bag')
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-41-34.bag')
 
 x_start = 0.5
 y_start = 4.5
@@ -74,9 +83,13 @@ if input == 'y':
 	
 	h_val_noBarrier = []
 	delay_t_noBarrier = []
+	t_lowLevel_noBarrier = []
+	uTot_noBarrieri = []
 	for topic, msg, t in bagNoBarrier.read_messages(topics=['/cyberpod/ctrl_info']):
+		delay_t_noBarrier.append(msg.data[0])
+		uTot_noBarrieri.append([msg.data[1], msg.data[2]])
 		h_val_noBarrier.append(msg.data[7])
-		delay_t_noBarrier.append((len(delay_t_noBarrier))*dt_ll)
+		t_lowLevel_noBarrier.append((len(t_lowLevel_noBarrier))*dt_ll)
 
 	uTot = []
 	uCBF = []
@@ -93,14 +106,15 @@ if input == 'y':
 		t_lowLevel.append((len(t_lowLevel))*dt_ll)
 
 	plt.figure(figsize=(12,10))
-	plt.plot(delay_t_noBarrier, h_val_noBarrier, '-r', label='naive MPC')
+	plt.plot(t_lowLevel_noBarrier, h_val_noBarrier, '-r', label='naive MPC')
 	plt.plot(t_lowLevel, h_val, '-b', label='proposed strategy')
 	plt.ylabel('barrier')
 	plt.legend()
 	plt.ylim(-10,1)
 
 	plt.figure()
-	plt.plot(t_lowLevel, delay_t, label='delay')
+	plt.plot(t_lowLevel_noBarrier, delay_t_noBarrier, '-r', label='naive MPC')
+	plt.plot(t_lowLevel, delay_t, '-b', label='proposed strategy')
 	plt.ylabel('delay')
 	plt.legend()
 
@@ -123,6 +137,16 @@ if input == 'y':
 	plt.legend()
 	plt.xlim(20.8,21.2)
 	plt.ylim(-4,2)
+
+	uTot_noBarrieri_array = np.array(uTot_noBarrieri)
+	plt.figure(figsize=(12,10))
+	plt.subplot(211)
+	plt.plot(t_lowLevel_noBarrier, uTot_noBarrieri_array[:, 0], '-b', label='tot no barrier')
+	plt.subplot(212)
+	plt.plot(t_lowLevel_noBarrier, uTot_noBarrieri_array[:, 1], '-b', label='tot no barrier')
+	plt.ylabel('input')
+	plt.legend()
+
 	## =======================================================
 	## Read and plot INPUT
 	## =======================================================

@@ -199,6 +199,7 @@ void joy_cb(const sensor_msgs::Joy::ConstPtr msg)
     last_button = ros::Time::now();
     pub_inputAct_.publish(msg_button);
   }
+
 }
 
 void goalSetAndStateCallback(const segway_sim::goalSetAndState::ConstPtr msg)
