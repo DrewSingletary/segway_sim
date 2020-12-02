@@ -70,7 +70,7 @@
 			<param name="enlarge"    type="double" value="0.0"/>		
 		</node>
 
-		<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/drew/rosbag/"/> 
+		<node pkg="rosbag" type="record" name="record" output="screen" args="record -a -o /home/ugo/rosbag/"/> 
 	
 	</group>
 </launch>

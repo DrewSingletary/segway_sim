@@ -20,13 +20,13 @@ from MOMDP import MOMDP, MOMDP_TOQ, MOMDP_TO, MOMDP_Q
 matplotlib.rcParams.update({'font.size': 22})
 
 
-newest = max(glob.iglob('/home/drew/rosbag_exp/*.bag'), key=os.path.getctime)
-print("Open: ", newest)
-bag = rosbag.Bag(newest)
+# newest = max(glob.iglob('/home/drew/rosbag_exp/*.bag'), key=os.path.getctime)
+# print("Open: ", newest)
+# bag = rosbag.Bag(newest)
 
 # bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-22-12.bag')
-bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-22-12.bag')
-bag = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-24-26.bag')
+# bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-22-12.bag')
+# bag = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-24-26.bag')
 
 # # Exp 1
 # bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-21-19-57-44.bag')
@@ -43,6 +43,22 @@ bag = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-24-26.bag')
 # # Exp 4
 # bag = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-45-54.bag')
 # bagNoBarrier = rosbag.Bag('/home/drew/rosbag_exp/_2020-11-23-13-41-34.bag')
+
+# Video 2 exp 2
+# bag = rosbag.Bag('/home/ugo/segExp/test_2_video_2/_2020-11-23-13-49-16.bag')
+# bagNoBarrier = rosbag.Bag('/home/segExp/ugo/test_2_video_2/_2020-11-23-13-47-15.bag')
+
+# test 5
+bag = rosbag.Bag('/home/ugo/expDataSeg/test_5/_2020-11-23-13-49-16.bag')
+bagNoBarrier = rosbag.Bag('/home/ugo/expDataSeg/test_5/_2020-11-23-13-22-12.bag')
+
+# # test 4
+# bagNoBarrier = rosbag.Bag('/home/ugo/expDataSeg/test_4/_2020-11-23-10-53-04.bag')
+# bag = rosbag.Bag('/home/ugo/expDataSeg/test_4/_2020-11-23-11-31-39.bag')
+
+# test 3
+bagNoBarrier = rosbag.Bag('/home/ugo/expDataSeg/test_3/_2020-11-23-13-47-15.bag')
+bag = rosbag.Bag('/home/ugo/expDataSeg/test_3/_2020-11-23-13-49-16.bag')
 
 x_start = 0.5
 y_start = 4.5
@@ -78,6 +94,8 @@ def getPred(optSol):
 
 input = 'y'#raw_input("Do you want to plot mid-level data? [y/n] ")
 if input == 'y':
+	tmin = 7+9
+	tmax = 44+9
 	
 	dt_ll = 1/800.0
 	
@@ -85,11 +103,14 @@ if input == 'y':
 	delay_t_noBarrier = []
 	t_lowLevel_noBarrier = []
 	uTot_noBarrieri = []
+	timeCounter = []
 	for topic, msg, t in bagNoBarrier.read_messages(topics=['/cyberpod/ctrl_info']):
-		delay_t_noBarrier.append(msg.data[0])
-		uTot_noBarrieri.append([msg.data[1], msg.data[2]])
-		h_val_noBarrier.append(msg.data[7])
-		t_lowLevel_noBarrier.append((len(t_lowLevel_noBarrier))*dt_ll)
+		timeCounter.append((len(timeCounter))*dt_ll)
+		if (timeCounter[-1] > tmin) and (timeCounter[-1] < tmax):
+			delay_t_noBarrier.append(msg.data[0])
+			uTot_noBarrieri.append([msg.data[1], msg.data[2]])
+			h_val_noBarrier.append(msg.data[7])
+			t_lowLevel_noBarrier.append((len(t_lowLevel_noBarrier))*dt_ll)
 
 	uTot = []
 	uCBF = []
@@ -97,20 +118,25 @@ if input == 'y':
 	h_val = []
 	t_lowLevel = []
 	delay_t = []
+	timeCounter = []
 	for topic, msg, t in bag.read_messages(topics=['/cyberpod/ctrl_info']):
-		delay_t.append(msg.data[0])
-		uTot.append([msg.data[1], msg.data[2]])
-		uMPC.append([msg.data[3], msg.data[4]])
-		uCBF.append([msg.data[5], msg.data[6]])
-		h_val.append(msg.data[7])
-		t_lowLevel.append((len(t_lowLevel))*dt_ll)
+		timeCounter.append((len(timeCounter))*dt_ll)
+		if (timeCounter[-1] > tmin) and (timeCounter[-1] < tmax):
+			delay_t.append(msg.data[0])
+			uTot.append([msg.data[1], msg.data[2]])
+			uMPC.append([msg.data[3], msg.data[4]])
+			uCBF.append([msg.data[5], msg.data[6]])
+			h_val.append(msg.data[7])
+			t_lowLevel.append((len(t_lowLevel))*dt_ll)
 
 	plt.figure(figsize=(12,10))
 	plt.plot(t_lowLevel_noBarrier, h_val_noBarrier, '-r', label='naive MPC')
 	plt.plot(t_lowLevel, h_val, '-b', label='proposed strategy')
-	plt.ylabel('barrier')
-	plt.legend()
-	plt.ylim(-10,1)
+	plt.plot([t_lowLevel[0], t_lowLevel[-1]], [0, 0],'-k')
+	plt.xlabel('Time [s]')
+	plt.ylabel('h(e)')
+	plt.legend(loc=0)
+	plt.ylim(-2,1)
 
 	plt.figure()
 	plt.plot(t_lowLevel_noBarrier, delay_t_noBarrier, '-r', label='naive MPC')
@@ -124,18 +150,20 @@ if input == 'y':
 
 	plt.figure(figsize=(12,10))
 	plt.subplot(211)
-	plt.plot(t_lowLevel, uMPC_array[:, 0], '-r', label='MPC')
-	plt.plot(t_lowLevel, uCBF_array[:, 0], '-k', label='CBF')
-	plt.plot(t_lowLevel, uTot_array[:, 0], '-b', label='tot')
-	plt.xlim(20.8,21.2)
+	plt.plot(t_lowLevel, uMPC_array[:, 0], '-r', label='mid-level input')
+	plt.plot(t_lowLevel, uCBF_array[:, 0], '-k', label='low-level input')
+	plt.plot(t_lowLevel, uTot_array[:, 0], '-b', label='total input')
+	plt.xlim(30.85,31.15)
 	plt.ylim(-4,2)
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
 	plt.subplot(212)
-	plt.plot(t_lowLevel, uMPC_array[:, 1], '-r', label='MPC')
-	plt.plot(t_lowLevel, uCBF_array[:, 1], '-k', label='CBF')
-	plt.plot(t_lowLevel, uTot_array[:, 1], '-b', label='tot')
-	plt.ylabel('input')
-	plt.legend()
-	plt.xlim(20.8,21.2)
+	plt.plot(t_lowLevel, uMPC_array[:, 1], '-r', label='mid-level input')
+	plt.plot(t_lowLevel, uCBF_array[:, 1], '-k', label='low-level input')
+	plt.plot(t_lowLevel, uTot_array[:, 1], '-b', label='total input')
+	plt.ylabel('Input [N/m]')
+	plt.xlabel('Time [s]')
+	plt.legend(bbox_to_anchor=(0, 1), loc='upper left', ncol=6, fontsize=18, framealpha=1)	
+	plt.xlim(30.85,31.15)
 	plt.ylim(-4,2)
 
 	uTot_noBarrieri_array = np.array(uTot_noBarrieri)
@@ -286,6 +314,36 @@ if input == 'y':
 	# plt.subplot(717)
 	# plt.plot(time_optSol, e0_array[:,6], label='e_0')
 	# plt.legend()
+
+	probMiss = []
+	Belief   = []
+	probObst = []
+	time_belief = []
+	xy_seg = []
+	xy_drn = []
+	for topic, msg, t in bag.read_messages(topics=['/segway_sim/highLevelBelief']):
+		probMiss.append(msg.probMiss)
+		Belief.append(msg.bt)
+		probObst.append(msg.prob)
+		time_belief.append((len(time_belief)))
+		if msg.targetPosDrone[0] > 0 and msg.targetPosDrone[1]>0:
+			xy_drn.append(msg.targetPosDrone)
+		if msg.targetPosSegway[0] > 0 and msg.targetPosSegway[1]>0:
+			xy_seg.append(msg.targetPosSegway)
+
+	probObstArray = 1-np.array(probObst)
+
+	with open('barrier.npy', 'wb') as f:
+		np.save(f, t_lowLevel)
+		np.save(f, np.array(h_val))
+		np.save(f, t_lowLevel_noBarrier)
+		np.save(f, np.array(h_val_noBarrier))
+
+	with open('obstBelief.npy', 'wb') as f:
+		np.save(f, time_belief)
+		np.save(f, np.array(probMiss))
+		np.save(f, np.array(probObstArray))
+
 	plt.show()
 
 	input = 'n'#raw_input("Do you want to plot an animation for the predicted trajectory? [y/n] ")

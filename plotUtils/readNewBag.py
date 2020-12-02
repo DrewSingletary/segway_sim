@@ -22,13 +22,10 @@ matplotlib.rcParams.update({'font.size': 22})
 # bag = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-01-06.bag')
 # bagNoBarrier = rosbag.Bag('/home/ugo/rosbag/_2020-10-31-15-04-29.bag')
 
-# newest = max(glob.iglob('/home/drew/rosbag/*.bag'), key=os.path.getctime)
-# print("Open: ", newest)
-# bag = rosbag.Bag(newest)
-# bagNoBarrier = rosbag.Bag('/home/drew/rosbag/_2020-11-22-12-11-39.bag')
-
-bag = rosbag.Bag('/home/ugo/expDataFinal/simData/_2020-11-22-12-13-41.bag')
-bagNoBarrier = rosbag.Bag('/home/ugo/expDataFinal/simData/_2020-11-22-12-11-39.bag')
+newest = max(glob.iglob('/home/ugo/rosbag/*.bag'), key=os.path.getctime)
+print("Open: ", newest)
+bag = rosbag.Bag(newest)
+bagNoBarrier = rosbag.Bag(newest)
 
 
 dt_mpc = 0.05
